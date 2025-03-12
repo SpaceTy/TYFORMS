@@ -1,0 +1,29 @@
+{
+  "Files": [
+    {
+      "Id": "/home/st/Documents/coding/TYBLOG/wwwroot/index.html",
+      "PackagePath": "staticwebassets/index.html"
+    },
+    {
+      "Id": "obj/Debug/net9.0/staticwebassets/msbuild.TYBLOG.Microsoft.AspNetCore.StaticWebAssetEndpoints.props",
+      "PackagePath": "build\\Microsoft.AspNetCore.StaticWebAssetEndpoints.props"
+    },
+    {
+      "Id": "obj/Debug/net9.0/staticwebassets/msbuild.TYBLOG.Microsoft.AspNetCore.StaticWebAssets.props",
+      "PackagePath": "build\\Microsoft.AspNetCore.StaticWebAssets.props"
+    },
+    {
+      "Id": "obj/Debug/net9.0/staticwebassets/msbuild.build.TYBLOG.props",
+      "PackagePath": "build\\TYBLOG.props"
+    },
+    {
+      "Id": "obj/Debug/net9.0/staticwebassets/msbuild.buildMultiTargeting.TYBLOG.props",
+      "PackagePath": "buildMultiTargeting\\TYBLOG.props"
+    },
+    {
+      "Id": "obj/Debug/net9.0/staticwebassets/msbuild.buildTransitive.TYBLOG.props",
+      "PackagePath": "buildTransitive\\TYBLOG.props"
+    }
+  ],
+  "ElementsToRemove": []
+}

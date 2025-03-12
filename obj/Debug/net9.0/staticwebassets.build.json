@@ -1,0 +1,362 @@
+{
+  "Version": 1,
+  "Hash": "UBAdyS9MXPhghTs0mgLfLFQslEKcgz5fZZh7Z3WNKNY=",
+  "Source": "TYBLOG",
+  "BasePath": "_content/TYBLOG",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [
+    {
+      "Name": "TYBLOG/wwwroot",
+      "Source": "TYBLOG",
+      "ContentRoot": "/home/st/Documents/coding/TYBLOG/wwwroot/",
+      "BasePath": "_content/TYBLOG",
+      "Pattern": "**"
+    }
+  ],
+  "Assets": [
+    {
+      "Identity": "/home/st/Documents/coding/TYBLOG/obj/Debug/net9.0/compressed/395s3icc2f-h6vpfb2mak.gz",
+      "SourceId": "TYBLOG",
+      "SourceType": "Discovered",
+      "ContentRoot": "/home/st/Documents/coding/TYBLOG/obj/Debug/net9.0/compressed/",
+      "BasePath": "_content/TYBLOG",
+      "RelativePath": "index#[.{fingerprint=h6vpfb2mak}]?.html.gz",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Alternative",
+      "AssetMergeBehavior": "",
+      "AssetMergeSource": "",
+      "RelatedAsset": "/home/st/Documents/coding/TYBLOG/wwwroot/index.html",
+      "AssetTraitName": "Content-Encoding",
+      "AssetTraitValue": "gzip",
+      "Fingerprint": "9tg8mxc6ao",
+      "Integrity": "474ix3TAsGSZkO298nfecPNw5CahLB96Kzof1xxMFLA=",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "/home/st/Documents/coding/TYBLOG/wwwroot/index.html"
+    },
+    {
+      "Identity": "/home/st/Documents/coding/TYBLOG/wwwroot/index.html",
+      "SourceId": "TYBLOG",
+      "SourceType": "Discovered",
+      "ContentRoot": "/home/st/Documents/coding/TYBLOG/wwwroot/",
+      "BasePath": "_content/TYBLOG",
+      "RelativePath": "index#[.{fingerprint}]?.html",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "Fingerprint": "h6vpfb2mak",
+      "Integrity": "53qWEMAx3kfX9oKQbRl0fO+Hv6VFbS2FwTpjQbssxnY=",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot/index.html"
+    }
+  ],
+  "Endpoints": [
+    {
+      "Route": "index.h6vpfb2mak.html",
+      "AssetFile": "/home/st/Documents/coding/TYBLOG/obj/Debug/net9.0/compressed/395s3icc2f-h6vpfb2mak.gz",
+      "Selectors": [
+        {
+          "Name": "Content-Encoding",
+          "Value": "gzip",
+          "Quality": "0.003105590062"
+        }
+      ],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "321"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"474ix3TAsGSZkO298nfecPNw5CahLB96Kzof1xxMFLA=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Wed, 12 Mar 2025 15:34:38 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=31536000, immutable"
+        },
+        {
+          "Name": "Content-Encoding",
+          "Value": "gzip"
+        },
+        {
+          "Name": "Vary",
+          "Value": "Content-Encoding"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "text/html"
+        },
+        {
+          "Name": "ETag",
+          "Value": "W/\"53qWEMAx3kfX9oKQbRl0fO+Hv6VFbS2FwTpjQbssxnY=\""
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "fingerprint",
+          "Value": "h6vpfb2mak"
+        },
+        {
+          "Name": "label",
+          "Value": "index.html"
+        },
+        {
+          "Name": "integrity",
+          "Value": "sha256-53qWEMAx3kfX9oKQbRl0fO+Hv6VFbS2FwTpjQbssxnY="
+        }
+      ]
+    },
+    {
+      "Route": "index.h6vpfb2mak.html",
+      "AssetFile": "/home/st/Documents/coding/TYBLOG/wwwroot/index.html",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "469"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "text/html"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"53qWEMAx3kfX9oKQbRl0fO+Hv6VFbS2FwTpjQbssxnY=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Wed, 12 Mar 2025 15:34:38 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=31536000, immutable"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "fingerprint",
+          "Value": "h6vpfb2mak"
+        },
+        {
+          "Name": "label",
+          "Value": "index.html"
+        },
+        {
+          "Name": "integrity",
+          "Value": "sha256-53qWEMAx3kfX9oKQbRl0fO+Hv6VFbS2FwTpjQbssxnY="
+        }
+      ]
+    },
+    {
+      "Route": "index.h6vpfb2mak.html.gz",
+      "AssetFile": "/home/st/Documents/coding/TYBLOG/obj/Debug/net9.0/compressed/395s3icc2f-h6vpfb2mak.gz",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "321"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "text/html"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"474ix3TAsGSZkO298nfecPNw5CahLB96Kzof1xxMFLA=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Wed, 12 Mar 2025 15:34:38 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=31536000, immutable"
+        },
+        {
+          "Name": "Content-Encoding",
+          "Value": "gzip"
+        },
+        {
+          "Name": "Vary",
+          "Value": "Content-Encoding"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "fingerprint",
+          "Value": "h6vpfb2mak"
+        },
+        {
+          "Name": "label",
+          "Value": "index.html.gz"
+        },
+        {
+          "Name": "integrity",
+          "Value": "sha256-474ix3TAsGSZkO298nfecPNw5CahLB96Kzof1xxMFLA="
+        }
+      ]
+    },
+    {
+      "Route": "index.html",
+      "AssetFile": "/home/st/Documents/coding/TYBLOG/obj/Debug/net9.0/compressed/395s3icc2f-h6vpfb2mak.gz",
+      "Selectors": [
+        {
+          "Name": "Content-Encoding",
+          "Value": "gzip",
+          "Quality": "0.003105590062"
+        }
+      ],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "321"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"474ix3TAsGSZkO298nfecPNw5CahLB96Kzof1xxMFLA=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Wed, 12 Mar 2025 15:34:38 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "no-cache"
+        },
+        {
+          "Name": "Content-Encoding",
+          "Value": "gzip"
+        },
+        {
+          "Name": "Vary",
+          "Value": "Content-Encoding"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "text/html"
+        },
+        {
+          "Name": "ETag",
+          "Value": "W/\"53qWEMAx3kfX9oKQbRl0fO+Hv6VFbS2FwTpjQbssxnY=\""
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "integrity",
+          "Value": "sha256-53qWEMAx3kfX9oKQbRl0fO+Hv6VFbS2FwTpjQbssxnY="
+        }
+      ]
+    },
+    {
+      "Route": "index.html",
+      "AssetFile": "/home/st/Documents/coding/TYBLOG/wwwroot/index.html",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "469"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "text/html"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"53qWEMAx3kfX9oKQbRl0fO+Hv6VFbS2FwTpjQbssxnY=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Wed, 12 Mar 2025 15:34:38 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "no-cache"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "integrity",
+          "Value": "sha256-53qWEMAx3kfX9oKQbRl0fO+Hv6VFbS2FwTpjQbssxnY="
+        }
+      ]
+    },
+    {
+      "Route": "index.html.gz",
+      "AssetFile": "/home/st/Documents/coding/TYBLOG/obj/Debug/net9.0/compressed/395s3icc2f-h6vpfb2mak.gz",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "321"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "text/html"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"474ix3TAsGSZkO298nfecPNw5CahLB96Kzof1xxMFLA=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Wed, 12 Mar 2025 15:34:38 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "no-cache"
+        },
+        {
+          "Name": "Content-Encoding",
+          "Value": "gzip"
+        },
+        {
+          "Name": "Vary",
+          "Value": "Content-Encoding"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "integrity",
+          "Value": "sha256-474ix3TAsGSZkO298nfecPNw5CahLB96Kzof1xxMFLA="
+        }
+      ]
+    }
+  ]
+}
