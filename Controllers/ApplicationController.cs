@@ -138,4 +138,74 @@ public class ApplicationController : ControllerBase
     {
         public int Id { get; set; }
     }
+
+    public class ReviewApplicationRequest : AdminAuthRequest
+    {
+        public int Id { get; set; }
+        public string? Notes { get; set; }
+    }
+
+    // POST: api/application/review
+    [HttpPost("review")]
+    public async Task<IActionResult> ReviewApplication([FromBody] ReviewApplicationRequest request)
+    {
+        if (!IsValidAdminPassword(request.Password))
+        {
+            return Unauthorized(new { Message = "Invalid admin password" });
+        }
+
+        var application = await _context.Applications.FindAsync(request.Id);
+        if (application == null)
+        {
+            return NotFound(new { Message = "Application not found" });
+        }
+
+        try
+        {
+            application.IsReviewed = true;
+            application.ReviewedAt = DateTime.UtcNow;
+            application.ReviewNotes = request.Notes;
+
+            await _context.SaveChangesAsync();
+            
+            return Ok(new { Success = true, Message = "Application reviewed successfully", Application = application });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error reviewing application");
+            return StatusCode(500, new { Message = "An error occurred while reviewing the application" });
+        }
+    }
+
+    // POST: api/application/unreview
+    [HttpPost("unreview")]
+    public async Task<IActionResult> UnreviewApplication([FromBody] ReviewApplicationRequest request)
+    {
+        if (!IsValidAdminPassword(request.Password))
+        {
+            return Unauthorized(new { Message = "Invalid admin password" });
+        }
+
+        var application = await _context.Applications.FindAsync(request.Id);
+        if (application == null)
+        {
+            return NotFound(new { Message = "Application not found" });
+        }
+
+        try
+        {
+            application.IsReviewed = false;
+            application.ReviewedAt = null;
+            application.ReviewNotes = null;
+
+            await _context.SaveChangesAsync();
+            
+            return Ok(new { Success = true, Message = "Application review status removed successfully", Application = application });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error removing review status");
+            return StatusCode(500, new { Message = "An error occurred while removing the review status" });
+        }
+    }
 } 

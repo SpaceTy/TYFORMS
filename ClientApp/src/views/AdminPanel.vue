@@ -76,7 +76,7 @@
                   <th class="w-1/4 px-3 py-3 text-left text-sm font-minecraft text-white whitespace-nowrap">SU</th>
                   <th class="w-20 px-3 py-3 text-center text-sm font-minecraft text-white whitespace-nowrap">S?</th>
                   <th class="w-36 px-3 py-3 text-left text-sm font-minecraft text-white whitespace-nowrap">Date</th>
-                  <th class="w-20 px-3 py-3 text-center text-sm font-minecraft text-white whitespace-nowrap">Actions</th>
+                  <th class="w-32 px-3 py-3 text-center text-sm font-minecraft text-white whitespace-nowrap">Actions</th>
                 </tr>
               </thead>
               
@@ -84,21 +84,27 @@
                 <tr 
                   v-for="(app, index) in applications" 
                   :key="app.id" 
-                  :class="{'bg-black/30': index % 2 === 0}"
-                  class="border-t border-minecraft-stone hover:bg-minecraft-water/20 transition-colors duration-150"
+                  :class="[
+                    {'bg-black/30': index % 2 === 0},
+                    {'bg-minecraft-important-red/10': !app.isReviewed}
+                  ]"
+                  class="border-t border-minecraft-stone hover:bg-minecraft-water/20 transition-colors duration-150 application-row"
                 >
-                  <td class="px-3 py-2 text-sm text-white">
-                    {{ app.id }}
+                  <td class="px-3 py-2 text-sm" :class="{'text-minecraft-important-red font-bold': !app.isReviewed, 'text-white': app.isReviewed}">
+                    <div class="flex items-center">
+                      <span v-if="!app.isReviewed" class="mr-1 review-star animate-pulse text-minecraft-important-red">⭐</span>
+                      {{ app.id }}
+                    </div>
                   </td>
                   
-                  <td class="px-3 py-2 text-sm text-white">
+                  <td class="px-3 py-2 text-sm" :class="{'text-minecraft-important-red': !app.isReviewed, 'text-white': app.isReviewed}">
                     <div class="tooltip-container">
                       <div class="truncate">{{ app.discordUsername }}</div>
                       <div class="tooltip">{{ app.discordUsername }}</div>
                     </div>
                   </td>
                   
-                  <td class="px-3 py-2 text-sm text-white">
+                  <td class="px-3 py-2 text-sm" :class="{'text-minecraft-important-red': !app.isReviewed, 'text-white': app.isReviewed}">
                     <div class="tooltip-container">
                       <div class="truncate">{{ app.minecraftUsername }}</div>
                       <div class="tooltip">{{ app.minecraftUsername }}</div>
@@ -109,14 +115,14 @@
                     {{ app.age }}
                   </td>
                   
-                  <td class="px-3 py-2 text-sm text-white">
+                  <td class="px-3 py-2 text-sm" :class="{'text-minecraft-important-red': !app.isReviewed, 'text-white': app.isReviewed}">
                     <div class="tooltip-container">
                       <div class="truncate">{{ app.favoriteAboutMinecraft }}</div>
                       <div class="tooltip">{{ app.favoriteAboutMinecraft }}</div>
                     </div>
                   </td>
                   
-                  <td class="px-3 py-2 text-sm text-white">
+                  <td class="px-3 py-2 text-sm" :class="{'text-minecraft-important-red': !app.isReviewed, 'text-white': app.isReviewed}">
                     <div class="tooltip-container">
                       <div class="truncate">{{ app.understandingOfSMP }}</div>
                       <div class="tooltip">{{ app.understandingOfSMP }}</div>
@@ -132,27 +138,132 @@
                     </span>
                   </td>
                   
-                  <td class="px-3 py-2 text-sm text-white">
+                  <td class="px-3 py-2 text-sm" :class="{'text-minecraft-important-red': !app.isReviewed, 'text-white': app.isReviewed}">
                     <div class="tooltip-container">
                       <div class="truncate">{{ formatDate(app.submissionDate) }}</div>
                       <div class="tooltip">{{ formatDate(app.submissionDate, true) }}</div>
                     </div>
+                    <div v-if="app.isReviewed" class="text-xs mt-1 text-green-500">
+                      Reviewed: {{ formatDate(app.reviewedAt) }}
+                    </div>
                   </td>
                   
                   <td class="px-3 py-2 text-sm text-white text-center">
-                    <button 
-                      @click="confirmDelete(app.id)"
-                      class="mc-button text-xs bg-red-500 hover:bg-red-600 border-red-700 px-2 py-1"
-                      :disabled="isDeleting === app.id"
-                    >
-                      <span v-if="isDeleting === app.id">...</span>
-                      <span v-else>Delete</span>
-                    </button>
+                    <div class="flex flex-col gap-2">
+                      <button 
+                        v-if="!app.isReviewed"
+                        @click="openReviewModal(app)"
+                        class="mc-button text-xs bg-green-600 hover:bg-green-700 border-green-800 px-2 py-1 review-btn animate-pulse"
+                        :disabled="isProcessing === app.id"
+                      >
+                        <span v-if="isProcessing === app.id">...</span>
+                        <span v-else>Review</span>
+                      </button>
+                      
+                      <button 
+                        v-if="app.isReviewed"
+                        @click="confirmUnreview(app.id)"
+                        class="mc-button text-xs bg-minecraft-important-red hover:bg-red-700 border-red-800 px-2 py-1"
+                        :disabled="isProcessing === app.id"
+                      >
+                        <span v-if="isProcessing === app.id">...</span>
+                        <span v-else>Unreview</span>
+                      </button>
+                      
+                      <button 
+                        @click="confirmDelete(app.id)"
+                        class="mc-button text-xs bg-red-500 hover:bg-red-600 border-red-700 px-2 py-1"
+                        :disabled="isDeleting === app.id"
+                      >
+                        <span v-if="isDeleting === app.id">...</span>
+                        <span v-else>Delete</span>
+                      </button>
+                      
+                      <button 
+                        v-if="app.isReviewed && app.reviewNotes"
+                        @click="showNotes(app)"
+                        class="mc-button text-xs bg-minecraft-deepslate hover:bg-gray-700 border-gray-800 px-2 py-1"
+                      >
+                        Notes
+                      </button>
+                    </div>
                   </td>
                 </tr>
               </tbody>
             </table>
           </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Review Modal -->
+    <div v-if="showReviewModal" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+      <div class="mc-container max-w-lg w-full animate-scale-in">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="mc-title text-lg">Review Application</h3>
+          <button @click="showReviewModal = false" class="text-white hover:text-red-500 transition">✕</button>
+        </div>
+        
+        <div v-if="selectedApplication" class="mb-4">
+          <p class="text-white mb-2">
+            <span class="font-minecraft">Player:</span> 
+            {{ selectedApplication.minecraftUsername }} ({{ selectedApplication.discordUsername }})
+          </p>
+          
+          <div class="mb-4">
+            <label class="mc-label block mb-1">Review Notes</label>
+            <textarea 
+              v-model="reviewNotes" 
+              class="mc-input w-full" 
+              rows="4"
+              placeholder="Enter notes about this application (optional)"
+            ></textarea>
+          </div>
+        </div>
+        
+        <div class="flex justify-end gap-2">
+          <button @click="showReviewModal = false" class="mc-button bg-gray-600 hover:bg-gray-700 border-gray-800">
+            Cancel
+          </button>
+          <button 
+            @click="submitReview"
+            class="mc-button bg-green-600 hover:bg-green-700 border-green-800"
+            :disabled="isSubmittingReview"
+          >
+            <span v-if="isSubmittingReview">Submitting...</span>
+            <span v-else>Submit Review</span>
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Notes Modal -->
+    <div v-if="showNotesModal" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+      <div class="mc-container max-w-lg w-full animate-scale-in">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="mc-title text-lg">Review Notes</h3>
+          <button @click="showNotesModal = false" class="text-white hover:text-red-500 transition">✕</button>
+        </div>
+        
+        <div v-if="selectedApplication" class="mb-4">
+          <p class="text-white mb-2">
+            <span class="font-minecraft">Player:</span> 
+            {{ selectedApplication.minecraftUsername }} ({{ selectedApplication.discordUsername }})
+          </p>
+          
+          <div class="bg-black/50 p-4 rounded-md border border-minecraft-stone">
+            <p class="text-white whitespace-pre-line">{{ selectedApplication.reviewNotes || 'No notes provided.' }}</p>
+          </div>
+          
+          <p class="text-xs text-minecraft-gold mt-2">
+            Reviewed on: {{ formatDate(selectedApplication.reviewedAt, true) }}
+          </p>
+        </div>
+        
+        <div class="flex justify-end">
+          <button @click="showNotesModal = false" class="mc-button">
+            Close
+          </button>
         </div>
       </div>
     </div>
@@ -177,6 +288,16 @@ const passwordInput = ref(null);
 const authenticatedPassword = ref(''); // Store authenticated password for subsequent requests
 const adminContainerRef = ref(null);
 const isDeleting = ref(null); // Track which row is being deleted
+const isProcessing = ref(null); // Track which application is being processed (review/unreview)
+
+// Review modal state
+const showReviewModal = ref(false);
+const selectedApplication = ref(null);
+const reviewNotes = ref('');
+const isSubmittingReview = ref(false);
+
+// Notes modal state
+const showNotesModal = ref(false);
 
 // Authenticate user
 async function authenticate() {
@@ -199,151 +320,232 @@ async function authenticate() {
           
           // After view changes, animate the admin panel in
           nextTick(() => {
-            // Load applications data after successful login
-            refreshData();
-            
-            // Make sure the admin panel is visible with proper initial state
             if (adminContainerRef.value) {
-              // Ensure it's visible before animation
-              gsap.set(adminContainerRef.value, { 
+              gsap.from(adminContainerRef.value, {
                 opacity: 0,
-                scale: 0.95
-              });
-              
-              // Animate it in
-              gsap.to(adminContainerRef.value, {
-                opacity: 1,
-                scale: 1,
-                duration: 0.3,
-                delay: 0.1 // Small delay to ensure DOM is ready
+                scale: 0.98,
+                duration: 0.4,
+                ease: 'power2.out'
               });
             }
+            
+            // Load data
+            refreshData();
           });
         }
       });
     } else {
-      handleAuthError();
-    }
-  } catch (error) {
-    console.error('Authentication error:', error);
-    handleAuthError();
-  }
-}
-
-function handleAuthError() {
-  authError.value = 'Incorrect password. Please try again.';
-  password.value = '';
-  
-  // Focus back on password input
-  nextTick(() => {
-    if (passwordInput.value) {
-      passwordInput.value.focus();
-    }
-  });
-  
-  // Shake animation for error
-  gsap.to('.login-container', {
-    x: -10,
-    duration: 0.1,
-    repeat: 5,
-    yoyo: true,
-    ease: 'power1.inOut'
-  });
-}
-
-// Logout function
-function logout() {
-  // Animate out
-  gsap.to(adminContainerRef.value, {
-    opacity: 0,
-    scale: 0.95,
-    duration: 0.3,
-    onComplete: () => {
-      isAuthenticated.value = false;
-      authenticatedPassword.value = ''; // Clear stored password
+      authError.value = 'Invalid password';
       
-      // Reset the UI
-      nextTick(() => {
-        // Animate login form back in
-        gsap.fromTo('.login-container', 
-          { opacity: 0, scale: 0.95 },
-          { opacity: 1, scale: 1, duration: 0.3 }
-        );
-        
-        if (passwordInput.value) {
-          passwordInput.value.focus();
-        }
+      // Shake animation for incorrect password
+      gsap.to('.login-container', {
+        x: [-10, 10, -10, 10, -5, 5, -2, 2, 0],
+        duration: 0.5,
+        ease: 'power2.out'
       });
     }
-  });
-}
-
-// Get age display color based on value
-function getAgeColor(age) {
-  if (age < 16) {
-    return 'text-red-400';
-  } else if (age >= 16 && age <= 20) {
-    return 'text-green-400';
-  } else {
-    return 'text-purple-400';
+  } catch (error) {
+    authError.value = 'Authentication error. Please try again.';
   }
 }
 
-// Load data on mount if authenticated
-onMounted(() => {
-  // Focus on password input
-  nextTick(() => {
-    if (passwordInput.value) {
-      passwordInput.value.focus();
-    }
-  });
-});
+// Get age display color
+function getAgeColor(age) {
+  if (age < 13) return 'text-red-500';
+  if (age < 16) return 'text-yellow-400';
+  if (age < 18) return 'text-green-400';
+  return 'text-white';
+}
 
-// Refresh application data
-async function refreshData() {
-  if (!isAuthenticated.value) return;
+// Open review modal
+function openReviewModal(application) {
+  selectedApplication.value = application;
+  reviewNotes.value = '';
+  showReviewModal.value = true;
+}
+
+// Show notes modal
+function showNotes(application) {
+  selectedApplication.value = application;
+  showNotesModal.value = true;
+}
+
+// Submit review
+async function submitReview() {
+  if (!selectedApplication.value) return;
+  
+  isSubmittingReview.value = true;
+  isProcessing.value = selectedApplication.value.id;
   
   try {
-    isLoading.value = true;
-    errorMessage.value = '';
+    const response = await api.reviewApplication(
+      selectedApplication.value.id,
+      authenticatedPassword.value,
+      reviewNotes.value
+    );
     
-    const data = await api.getApplications(authenticatedPassword.value);
-    applications.value = data;
+    if (response.success) {
+      // Update the application in the list
+      const index = applications.value.findIndex(app => app.id === selectedApplication.value.id);
+      if (index !== -1) {
+        applications.value[index] = response.application;
+        
+        // Add animation to the updated row
+        nextTick(() => {
+          const rows = document.querySelectorAll('.application-row');
+          if (rows[index]) {
+            gsap.fromTo(rows[index], 
+              { backgroundColor: 'rgba(50, 205, 50, 0.3)' },  // Green for "reviewed" transition
+              { backgroundColor: '', duration: 1.5, ease: 'power2.out' }
+            );
+          }
+        });
+      }
+      
+      showReviewModal.value = false;
+    }
   } catch (error) {
-    console.error('Error fetching applications:', error);
-    handleApiError(error);
+    errorMessage.value = 'Failed to review application. Please try again.';
   } finally {
-    isLoading.value = false;
+    isSubmittingReview.value = false;
+    isProcessing.value = null;
+  }
+}
+
+// Confirm unreview
+function confirmUnreview(applicationId) {
+  if (confirm('Are you sure you want to remove the reviewed status?')) {
+    unreviewApplication(applicationId);
+  }
+}
+
+// Unreview application
+async function unreviewApplication(applicationId) {
+  isProcessing.value = applicationId;
+  
+  try {
+    const response = await api.unreviewApplication(
+      applicationId,
+      authenticatedPassword.value
+    );
+    
+    if (response.success) {
+      // Update the application in the list
+      const index = applications.value.findIndex(app => app.id === applicationId);
+      if (index !== -1) {
+        applications.value[index] = response.application;
+        
+        // Add animation to the updated row - now highlighting with red since unreviewed
+        nextTick(() => {
+          const rows = document.querySelectorAll('.application-row');
+          if (rows[index]) {
+            gsap.fromTo(rows[index], 
+              { backgroundColor: 'rgba(255, 82, 82, 0.3)' },  // Red for "unreviewed" transition
+              { backgroundColor: '', duration: 1, ease: 'power2.out' }
+            );
+          }
+        });
+      }
+    }
+  } catch (error) {
+    errorMessage.value = 'Failed to unreview application. Please try again.';
+  } finally {
+    isProcessing.value = null;
+  }
+}
+
+// Confirm delete
+function confirmDelete(applicationId) {
+  if (confirm('Are you sure you want to delete this application? This action cannot be undone.')) {
+    deleteApplication(applicationId);
   }
 }
 
 // Delete application
-async function deleteApplication(id) {
-  if (!isAuthenticated.value) return;
+async function deleteApplication(applicationId) {
+  isDeleting.value = applicationId;
   
   try {
-    isDeleting.value = id;
-    errorMessage.value = '';
+    const response = await api.deleteApplication(applicationId, authenticatedPassword.value);
     
-    await api.deleteApplication(id, authenticatedPassword.value);
-    
-    // Remove the application from the list
-    applications.value = applications.value.filter(app => app.id !== id);
-    
-    // Show success animation on the row that was deleted
-    // This is handled by removing it from the array
+    if (response.success) {
+      // Remove the deleted application from the list with animation
+      const index = applications.value.findIndex(app => app.id === applicationId);
+      if (index !== -1) {
+        // Animate the row before removing it
+        const rows = document.querySelectorAll('.application-row');
+        if (rows[index]) {
+          gsap.to(rows[index], {
+            opacity: 0,
+            height: 0,
+            paddingTop: 0,
+            paddingBottom: 0,
+            duration: 0.3,
+            onComplete: () => {
+              applications.value = applications.value.filter(app => app.id !== applicationId);
+            }
+          });
+        } else {
+          applications.value = applications.value.filter(app => app.id !== applicationId);
+        }
+      }
+    }
   } catch (error) {
-    console.error('Error deleting application:', error);
-    handleApiError(error);
+    errorMessage.value = 'Failed to delete application. Please try again.';
   } finally {
     isDeleting.value = null;
   }
 }
 
-// Confirm delete with user
-function confirmDelete(id) {
-  if (confirm('Are you sure you want to delete this application? This action cannot be undone.')) {
-    deleteApplication(id);
+// Fetch applications
+async function refreshData() {
+  isLoading.value = true;
+  errorMessage.value = '';
+  
+  try {
+    const data = await api.getApplications(authenticatedPassword.value);
+    
+    // Animate the data update
+    const oldLength = applications.value.length;
+    applications.value = data;
+    
+    if (oldLength === 0 && data.length > 0) {
+      // First data load, animate the table appearance
+      nextTick(() => {
+        gsap.from('table', {
+          opacity: 0,
+          y: 20,
+          duration: 0.5,
+          ease: 'power2.out'
+        });
+        
+        gsap.from('.application-row', {
+          opacity: 0,
+          y: 15,
+          stagger: 0.05,
+          duration: 0.4,
+          ease: 'power2.out'
+        });
+      });
+    } else if (data.length > oldLength) {
+      // New entries, animate only the new ones
+      nextTick(() => {
+        const rows = document.querySelectorAll('.application-row');
+        for (let i = oldLength; i < rows.length; i++) {
+          gsap.from(rows[i], {
+            opacity: 0,
+            y: 15,
+            duration: 0.4,
+            ease: 'power2.out',
+            delay: i * 0.05
+          });
+        }
+      });
+    }
+  } catch (error) {
+    errorMessage.value = 'Failed to load applications. Please try again.';
+  } finally {
+    isLoading.value = false;
   }
 }
 
@@ -352,203 +554,167 @@ async function exportToCsv() {
   try {
     await api.exportApplications(authenticatedPassword.value);
   } catch (error) {
-    handleApiError(error);
+    errorMessage.value = 'Failed to export applications. Please try again.';
   }
 }
 
-// Handle API errors, including authentication failures
-function handleApiError(error) {
-  if (error.response && error.response.status === 401) {
-    errorMessage.value = 'Authentication error. Please log in again.';
-    // Force logout on authentication error
-    setTimeout(() => {
-      logout();
-    }, 2000);
-  } else {
-    errorMessage.value = 'Failed to complete the operation. Please try again.';
-  }
+// Logout
+function logout() {
+  // Animate logout transition
+  gsap.to(adminContainerRef.value, {
+    opacity: 0,
+    scale: 0.98,
+    duration: 0.3,
+    onComplete: () => {
+      isAuthenticated.value = false;
+      authenticatedPassword.value = '';
+      applications.value = [];
+      
+      // After view changes, animate the login form in
+      nextTick(() => {
+        gsap.from('.login-container', {
+          opacity: 0,
+          scale: 0.95,
+          duration: 0.4,
+          ease: 'power2.out',
+          onComplete: () => {
+            // Focus password input
+            if (passwordInput.value) {
+              passwordInput.value.focus();
+            }
+          }
+        });
+      });
+    }
+  });
 }
 
-// Format date
-function formatDate(dateString, detailed = false) {
-  if (!dateString) return '';
+// Setup on component mount
+onMounted(() => {
+  // Focus password input when mounted
+  if (passwordInput.value) {
+    passwordInput.value.focus();
+  }
+});
+
+// Format date for display
+function formatDate(dateString, includeTime = false) {
+  if (!dateString) return 'N/A';
   
   const date = new Date(dateString);
-  
-  if (detailed) {
-    return new Intl.DateTimeFormat('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      timeZoneName: 'short'
-    }).format(date);
-  }
-  
-  return new Intl.DateTimeFormat('en-US', {
-    year: 'numeric',
-    month: 'short',
+  const options = { 
+    year: 'numeric', 
+    month: 'short', 
     day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  }).format(date);
+    ...(includeTime ? { hour: '2-digit', minute: '2-digit' } : {})
+  };
+  
+  return date.toLocaleDateString('en-US', options);
 }
 </script>
 
 <style scoped>
-/* Make the component take full height and width */
-:deep(body), :deep(html), :deep(#app), :deep(.min-h-screen), :deep(main) {
-  height: 100% !important;
-  width: 100% !important;
-  overflow: hidden !important;
-  position: relative !important;
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-out;
 }
 
-/* Fix for mc-title in header */
-.mc-title {
-  margin-bottom: 0;
+.animate-scale-in {
+  animation: scaleIn 0.3s ease-out;
 }
 
-/* Admin panel styling */
-.mc-panel {
-  background-color: rgba(74, 74, 74, 0.2);
-  border: 2px solid #7f8c8d;
-  border-radius: 6px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  backdrop-filter: blur(4px);
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
-/* Fixed table header styles */
-thead {
-  background-color: #2c3e50;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+@keyframes scaleIn {
+  from { 
+    opacity: 0; 
+    transform: scale(0.95);
+  }
+  to { 
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
-/* Table styles */
-table {
-  border-collapse: collapse;
-  border-spacing: 0;
-}
-
-th, td {
-  vertical-align: middle;
-  padding: 0.5rem 0.75rem;
-}
-
-tr {
-  margin: 0;
-}
-
-/* Tooltip styles */
 .tooltip-container {
   position: relative;
-  cursor: pointer;
-  width: 100%;
-}
-
-.tooltip-container .truncate {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.tooltip-container:hover .tooltip {
-  display: block;
+  cursor: default;
 }
 
 .tooltip {
   display: none;
   position: absolute;
-  left: 0;
-  background-color: #2c3e50;
+  background-color: rgba(0, 0, 0, 0.9);
+  border: 1px solid #555;
   color: white;
-  padding: 0.75rem;
-  border-radius: 6px;
-  font-size: 0.875rem;
-  line-height: 1.5;
+  padding: 0.5rem;
+  border-radius: 0.25rem;
+  z-index: 20;
+  top: 100%;
+  left: 0;
   white-space: normal;
   max-width: 300px;
-  word-break: break-word;
-  z-index: 50;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
-  border: 1px solid #7f8c8d;
-  transition: opacity 0.2s ease;
-  opacity: 0;
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
 }
 
-/* Make sure tooltips don't overflow horizontally and show properly */
 .tooltip-container:hover .tooltip {
   display: block;
-  opacity: 1;
-  max-width: min(300px, 90vw);
 }
 
-/* Tooltip arrow indicators */
-.tooltip::after {
+.review-star {
+  display: inline-block;
+  animation: pulse 1.5s infinite;
+  color: #ff5252;
+  text-shadow: 0 0 5px rgba(255, 82, 82, 0.7);
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 0.7;
+    transform: scale(0.95);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.1);
+    text-shadow: 0 0 10px rgba(255, 82, 82, 0.9);
+  }
+  100% {
+    opacity: 0.7;
+    transform: scale(0.95);
+  }
+}
+
+.review-btn {
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 0 8px rgba(50, 205, 50, 0.5);
+}
+
+.review-btn::after {
   content: '';
   position: absolute;
-  width: 0;
-  height: 0;
-  border-left: 8px solid transparent;
-  border-right: 8px solid transparent;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.3),
+    transparent
+  );
+  animation: shimmer 1.5s infinite;
 }
 
-/* Tooltip positions based on row position */
-tr:nth-child(-n+3) .tooltip {
-  top: 130%; /* For first 3 rows, show below */
-}
-
-tr:nth-child(n+4) .tooltip {
-  bottom: 130%; /* For rest of rows, show above */
-}
-
-/* Horizontal tooltip positioning */
-td:nth-child(-n+3) .tooltip {
-  left: 0; /* For first 3 columns, align left */
-}
-
-td:nth-child(n+4) .tooltip {
-  right: 0; /* For right columns, align right */
-  left: auto;
-}
-
-/* Arrow for tooltips that show below */
-tr:nth-child(-n+3) .tooltip::after {
-  top: -8px;
-  left: 15px;
-  border-bottom: 8px solid #2c3e50;
-}
-
-/* Arrow for tooltips that show above */
-tr:nth-child(n+4) .tooltip::after {
-  bottom: -8px;
-  left: 15px;
-  border-top: 8px solid #2c3e50;
-}
-
-/* Adjust arrow position for right-aligned tooltips */
-td:nth-child(n+4) .tooltip::after {
-  left: auto;
-  right: 15px;
-}
-
-/* Make sure tooltips don't overflow horizontally */
-.tooltip-container:hover .tooltip {
-  max-width: min(300px, 90vw);
-  display: block;
-  opacity: 1;
-}
-
-/* Make sure the admin panel is visible */
-.admin-panel {
-  opacity: 1;
-  transform: scale(1);
-}
-
-/* Make the table row hover effect more noticeable */
-tbody tr:hover {
-  background-color: rgba(52, 152, 219, 0.2) !important;
+@keyframes shimmer {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
 }
 </style> 

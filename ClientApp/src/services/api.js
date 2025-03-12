@@ -70,5 +70,32 @@ export default {
       console.error('Error deleting application:', error);
       throw error;
     }
+  },
+  
+  async reviewApplication(applicationId, adminPassword, notes = '') {
+    try {
+      const response = await api.post('/application/review', {
+        id: applicationId,
+        password: adminPassword,
+        notes: notes
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error reviewing application:', error);
+      throw error;
+    }
+  },
+  
+  async unreviewApplication(applicationId, adminPassword) {
+    try {
+      const response = await api.post('/application/unreview', {
+        id: applicationId,
+        password: adminPassword
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error unreview application:', error);
+      throw error;
+    }
   }
 }; 

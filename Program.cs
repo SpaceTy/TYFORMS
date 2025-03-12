@@ -34,7 +34,9 @@ using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
     var context = services.GetRequiredService<ApplicationDbContext>();
-    context.Database.EnsureCreated();
+    
+    // This will create the database and apply any pending migrations
+    context.Database.Migrate();
 }
 
 // Configure the HTTP request pipeline.

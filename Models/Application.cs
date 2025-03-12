@@ -26,4 +26,10 @@ public class Application
     public bool JoinedDiscord { get; set; }
     
     public DateTime SubmissionDate { get; set; } = DateTime.UtcNow;
+
+    public bool IsReviewed { get; set; } = false;
+    
+    public DateTime? ReviewedAt { get; set; }
+    
+    public string? ReviewNotes { get; set; }
 } 

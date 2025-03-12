@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("TYBLOG")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+26cae530ca09af29ab09888f9ff6b636a20bf24a")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+b345a0fee277703dc99407b4f2684112dbea09f0")]
 [assembly: System.Reflection.AssemblyProductAttribute("TYBLOG")]
 [assembly: System.Reflection.AssemblyTitleAttribute("TYBLOG")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
