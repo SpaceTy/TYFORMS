@@ -57,5 +57,18 @@ export default {
       console.error('Error exporting applications:', error);
       throw error;
     }
+  },
+  
+  async deleteApplication(applicationId, adminPassword) {
+    try {
+      const response = await api.post('/application/delete', { 
+        id: applicationId,
+        password: adminPassword 
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error deleting application:', error);
+      throw error;
+    }
   }
 }; 

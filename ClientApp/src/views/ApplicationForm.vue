@@ -344,7 +344,7 @@ async function submitForm() {
 
 // Open Discord link
 function openDiscord() {
-  window.open('https://discord.gg/tysmp', '_blank');
+  window.open('https://discord.com/invite/gqQFuEK3hk', '_blank');
 }
 </script>
 

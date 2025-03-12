@@ -76,6 +76,7 @@
                   <th class="w-1/4 px-3 py-3 text-left text-sm font-minecraft text-white whitespace-nowrap">SU</th>
                   <th class="w-20 px-3 py-3 text-center text-sm font-minecraft text-white whitespace-nowrap">S?</th>
                   <th class="w-36 px-3 py-3 text-left text-sm font-minecraft text-white whitespace-nowrap">Date</th>
+                  <th class="w-20 px-3 py-3 text-center text-sm font-minecraft text-white whitespace-nowrap">Actions</th>
                 </tr>
               </thead>
               
@@ -137,6 +138,17 @@
                       <div class="tooltip">{{ formatDate(app.submissionDate, true) }}</div>
                     </div>
                   </td>
+                  
+                  <td class="px-3 py-2 text-sm text-white text-center">
+                    <button 
+                      @click="confirmDelete(app.id)"
+                      class="mc-button text-xs bg-red-500 hover:bg-red-600 border-red-700 px-2 py-1"
+                      :disabled="isDeleting === app.id"
+                    >
+                      <span v-if="isDeleting === app.id">...</span>
+                      <span v-else>Delete</span>
+                    </button>
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -164,6 +176,7 @@ const authError = ref('');
 const passwordInput = ref(null);
 const authenticatedPassword = ref(''); // Store authenticated password for subsequent requests
 const adminContainerRef = ref(null);
+const isDeleting = ref(null); // Track which row is being deleted
 
 // Authenticate user
 async function authenticate() {
@@ -301,6 +314,36 @@ async function refreshData() {
     handleApiError(error);
   } finally {
     isLoading.value = false;
+  }
+}
+
+// Delete application
+async function deleteApplication(id) {
+  if (!isAuthenticated.value) return;
+  
+  try {
+    isDeleting.value = id;
+    errorMessage.value = '';
+    
+    await api.deleteApplication(id, authenticatedPassword.value);
+    
+    // Remove the application from the list
+    applications.value = applications.value.filter(app => app.id !== id);
+    
+    // Show success animation on the row that was deleted
+    // This is handled by removing it from the array
+  } catch (error) {
+    console.error('Error deleting application:', error);
+    handleApiError(error);
+  } finally {
+    isDeleting.value = null;
+  }
+}
+
+// Confirm delete with user
+function confirmDelete(id) {
+  if (confirm('Are you sure you want to delete this application? This action cannot be undone.')) {
+    deleteApplication(id);
   }
 }
 

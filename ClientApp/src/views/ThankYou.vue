@@ -42,6 +42,9 @@ import { gsap } from 'gsap';
 const router = useRouter();
 
 onMounted(() => {
+  // Make sure the container is visible first
+  gsap.set('.mc-container', { opacity: 1, display: 'block', visibility: 'visible' });
+  
   // Improved entrance animation with a timeline
   const tl = gsap.timeline();
   
@@ -62,7 +65,7 @@ onMounted(() => {
 });
 
 function goToDiscord() {
-  window.open('https://discord.gg/tysmp', '_blank');
+  window.open('https://discord.com/invite/gqQFuEK3hk', '_blank');
 }
 
 function goHome() {
@@ -75,5 +78,15 @@ function goHome() {
 .thank-you-content {
   opacity: 1;
   transform: translateY(0);
+  position: relative;
+  z-index: 10;
+}
+
+.mc-container {
+  display: block;
+  opacity: 1;
+  visibility: visible;
+  position: relative;
+  z-index: 5;
 }
 </style> 

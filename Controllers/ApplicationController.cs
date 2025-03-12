@@ -104,4 +104,38 @@ public class ApplicationController : ControllerBase
 
         return File(memoryStream.ToArray(), "text/csv", "applications.csv");
     }
+
+    // DELETE: api/application/delete
+    [HttpPost("delete")]
+    public async Task<IActionResult> DeleteApplication([FromBody] DeleteApplicationRequest request)
+    {
+        if (!IsValidAdminPassword(request.Password))
+        {
+            return Unauthorized(new { Message = "Invalid admin password" });
+        }
+
+        var application = await _context.Applications.FindAsync(request.Id);
+        if (application == null)
+        {
+            return NotFound(new { Message = "Application not found" });
+        }
+
+        try
+        {
+            _context.Applications.Remove(application);
+            await _context.SaveChangesAsync();
+            
+            return Ok(new { Success = true, Message = "Application deleted successfully" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting application");
+            return StatusCode(500, new { Message = "An error occurred while deleting the application" });
+        }
+    }
+    
+    public class DeleteApplicationRequest : AdminAuthRequest
+    {
+        public int Id { get; set; }
+    }
 } 
