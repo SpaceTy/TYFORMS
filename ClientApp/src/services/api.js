@@ -72,12 +72,13 @@ export default {
     }
   },
   
-  async reviewApplication(applicationId, adminPassword, notes = '') {
+  async reviewApplication(applicationId, adminPassword, notes = '', acceptanceStatus = 'pending') {
     try {
       const response = await api.post('/application/review', {
         id: applicationId,
         password: adminPassword,
-        notes: notes
+        notes: notes,
+        acceptanceStatus: acceptanceStatus
       });
       return response.data;
     } catch (error) {

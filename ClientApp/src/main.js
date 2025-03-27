@@ -6,6 +6,7 @@ import App from './App.vue'
 // Import routes
 import ApplicationForm from './views/ApplicationForm.vue'
 import AdminPanel from './views/AdminPanel.vue'
+import MobileAdminPanel from './views/MobileAdminPanel.vue'
 import ThankYou from './views/ThankYou.vue'
 
 // Import CSS
@@ -20,9 +21,25 @@ const router = createRouter({
   routes: [
     { path: '/', component: ApplicationForm },
     { path: '/admin', component: AdminPanel },
+    { path: '/admin/mobile', component: MobileAdminPanel },
     { path: '/thank-you', component: ThankYou },
   ],
 })
+
+// Navigation guard for mobile redirection
+router.beforeEach((to, from, next) => {
+  if (to.path === '/admin') {
+    // Check if the device is mobile-like (width <= 768px)
+    const isMobile = window.innerWidth <= 768;
+    if (isMobile) {
+      next('/admin/mobile');
+    } else {
+      next();
+    }
+  } else {
+    next();
+  }
+});
 
 // Create and mount app
 const app = createApp(App)

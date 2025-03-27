@@ -68,14 +68,14 @@
             <table class="w-full table-fixed bg-black/50 border border-minecraft-stone rounded-md">
               <thead class="sticky top-0 z-10">
                 <tr class="bg-minecraft-deepslate">
-                  <th class="w-12 px-3 py-3 text-left text-sm font-minecraft text-white whitespace-nowrap">#</th>
-                  <th class="w-32 px-3 py-3 text-left text-sm font-minecraft text-white whitespace-nowrap">DC</th>
-                  <th class="w-32 px-3 py-3 text-left text-sm font-minecraft text-white whitespace-nowrap">MC</th>
-                  <th class="w-14 px-3 py-3 text-center text-sm font-minecraft text-white whitespace-nowrap">Age</th>
-                  <th class="w-1/4 px-3 py-3 text-left text-sm font-minecraft text-white whitespace-nowrap">FAM</th>
-                  <th class="w-1/4 px-3 py-3 text-left text-sm font-minecraft text-white whitespace-nowrap">SU</th>
-                  <th class="w-20 px-3 py-3 text-center text-sm font-minecraft text-white whitespace-nowrap">S?</th>
-                  <th class="w-36 px-3 py-3 text-left text-sm font-minecraft text-white whitespace-nowrap">Date</th>
+                  <th class="w-16 px-3 py-3 text-left text-sm font-minecraft text-white whitespace-nowrap border-r border-minecraft-stone">#</th>
+                  <th class="w-32 px-3 py-3 text-left text-sm font-minecraft text-white whitespace-nowrap border-r border-minecraft-stone">DC</th>
+                  <th class="w-32 px-3 py-3 text-left text-sm font-minecraft text-white whitespace-nowrap border-r border-minecraft-stone">MC</th>
+                  <th class="w-14 px-3 py-3 text-center text-sm font-minecraft text-white whitespace-nowrap border-r border-minecraft-stone">Age</th>
+                  <th class="w-1/4 px-3 py-3 text-left text-sm font-minecraft text-white whitespace-nowrap border-r border-minecraft-stone">FAM</th>
+                  <th class="w-1/4 px-3 py-3 text-left text-sm font-minecraft text-white whitespace-nowrap border-r border-minecraft-stone">SU</th>
+                  <th class="w-20 px-3 py-3 text-center text-sm font-minecraft text-white whitespace-nowrap border-r border-minecraft-stone">S?</th>
+                  <th class="w-36 px-3 py-3 text-left text-sm font-minecraft text-white whitespace-nowrap border-r border-minecraft-stone">Date</th>
                   <th class="w-32 px-3 py-3 text-center text-sm font-minecraft text-white whitespace-nowrap">Actions</th>
                 </tr>
               </thead>
@@ -90,46 +90,53 @@
                   ]"
                   class="border-t border-minecraft-stone hover:bg-minecraft-water/20 transition-colors duration-150 application-row"
                 >
-                  <td class="px-3 py-2 text-sm" :class="{'text-minecraft-important-red font-bold': !app.isReviewed, 'text-white': app.isReviewed}">
-                    <div class="flex items-center">
-                      <span v-if="!app.isReviewed" class="mr-1 review-star animate-pulse text-minecraft-important-red">⭐</span>
-                      {{ app.id }}
+                  <td class="px-3 py-2 text-sm border-r border-minecraft-stone/40" :class="{'text-minecraft-important-red font-bold': !app.isReviewed, 'text-white': app.isReviewed}">
+                    <div class="flex items-center justify-between">
+                      <span v-if="!app.isReviewed" class="review-star animate-pulse text-minecraft-important-red w-5 flex-shrink-0">⭐</span>
+                      <span class="ml-auto">{{ app.id }}</span>
                     </div>
                   </td>
                   
-                  <td class="px-3 py-2 text-sm" :class="{'text-minecraft-important-red': !app.isReviewed, 'text-white': app.isReviewed}">
+                  <td class="px-3 py-2 text-sm border-r border-minecraft-stone/40" :class="{'text-minecraft-important-red': !app.isReviewed, 'text-white': app.isReviewed}">
                     <div class="tooltip-container">
                       <div class="truncate">{{ app.discordUsername }}</div>
                       <div class="tooltip">{{ app.discordUsername }}</div>
                     </div>
                   </td>
                   
-                  <td class="px-3 py-2 text-sm" :class="{'text-minecraft-important-red': !app.isReviewed, 'text-white': app.isReviewed}">
+                  <td class="px-3 py-2 text-sm border-r border-minecraft-stone/40" :class="{'text-minecraft-important-red': !app.isReviewed, 'text-white': app.isReviewed}">
                     <div class="tooltip-container">
-                      <div class="truncate">{{ app.minecraftUsername }}</div>
+                      <div 
+                        class="truncate cursor-pointer hover:text-minecraft-gold transition-colors duration-150"
+                        @click="copyToClipboard(app.minecraftUsername)"
+                        :class="{'copied': app.minecraftUsername === lastCopiedUsername}"
+                      >
+                        {{ app.minecraftUsername }}
+                        <span class="copy-icon ml-1 opacity-0 group-hover:opacity-100">📋</span>
+                      </div>
                       <div class="tooltip">{{ app.minecraftUsername }}</div>
                     </div>
                   </td>
                   
-                  <td class="px-3 py-2 text-sm font-bold text-center" :class="getAgeColor(app.age)">
+                  <td class="px-3 py-2 text-sm font-bold text-center border-r border-minecraft-stone/40" :class="getAgeColor(app.age)">
                     {{ app.age }}
                   </td>
                   
-                  <td class="px-3 py-2 text-sm" :class="{'text-minecraft-important-red': !app.isReviewed, 'text-white': app.isReviewed}">
+                  <td class="px-3 py-2 text-sm border-r border-minecraft-stone/40" :class="{'text-minecraft-important-red': !app.isReviewed, 'text-white': app.isReviewed}">
                     <div class="tooltip-container">
                       <div class="truncate">{{ app.favoriteAboutMinecraft }}</div>
                       <div class="tooltip">{{ app.favoriteAboutMinecraft }}</div>
                     </div>
                   </td>
                   
-                  <td class="px-3 py-2 text-sm" :class="{'text-minecraft-important-red': !app.isReviewed, 'text-white': app.isReviewed}">
+                  <td class="px-3 py-2 text-sm border-r border-minecraft-stone/40" :class="{'text-minecraft-important-red': !app.isReviewed, 'text-white': app.isReviewed}">
                     <div class="tooltip-container">
                       <div class="truncate">{{ app.understandingOfSMP }}</div>
                       <div class="tooltip">{{ app.understandingOfSMP }}</div>
                     </div>
                   </td>
                   
-                  <td class="px-3 py-2 text-sm text-white text-center">
+                  <td class="px-3 py-2 text-sm text-white text-center border-r border-minecraft-stone/40">
                     <span 
                       :class="app.joinedDiscord ? 'bg-minecraft-green' : 'bg-red-500'" 
                       class="px-2 py-1 rounded-full text-xs"
@@ -138,13 +145,26 @@
                     </span>
                   </td>
                   
-                  <td class="px-3 py-2 text-sm" :class="{'text-minecraft-important-red': !app.isReviewed, 'text-white': app.isReviewed}">
+                  <td class="px-3 py-2 text-sm border-r border-minecraft-stone/40" :class="{'text-minecraft-important-red': !app.isReviewed, 'text-white': app.isReviewed}">
                     <div class="tooltip-container">
                       <div class="truncate">{{ formatDate(app.submissionDate) }}</div>
                       <div class="tooltip">{{ formatDate(app.submissionDate, true) }}</div>
                     </div>
                     <div v-if="app.isReviewed" class="text-xs mt-1 text-green-500">
                       Reviewed: {{ formatDate(app.reviewedAt) }}
+                    </div>
+                    <div v-if="app.isReviewed && app.acceptanceStatus" class="mt-1">
+                      <span 
+                        class="text-xs px-2 py-0.5 rounded-full"
+                        :class="{
+                          'bg-green-600 text-white': app.acceptanceStatus === 'accepted',
+                          'bg-red-600 text-white': app.acceptanceStatus === 'rejected',
+                          'bg-yellow-600 text-white': app.acceptanceStatus === 'pending'
+                        }"
+                      >
+                        {{ app.acceptanceStatus === 'accepted' ? 'Accepted' : 
+                           app.acceptanceStatus === 'rejected' ? 'Rejected' : 'Pending' }}
+                      </span>
                     </div>
                   </td>
                   
@@ -205,23 +225,91 @@
         </div>
         
         <div v-if="selectedApplication" class="mb-4">
-          <p class="text-white mb-2">
-            <span class="font-minecraft">Player:</span> 
-            {{ selectedApplication.minecraftUsername }} ({{ selectedApplication.discordUsername }})
-          </p>
-          
-          <div class="mb-4">
-            <label class="mc-label block mb-1">Review Notes</label>
-            <textarea 
-              v-model="reviewNotes" 
-              class="mc-input w-full" 
-              rows="4"
-              placeholder="Enter notes about this application (optional)"
-            ></textarea>
+          <!-- Player Info Panel -->
+          <div class="bg-minecraft-deepslate/40 rounded-md p-4 mb-4 border border-minecraft-stone/50">
+            <p class="text-white">
+              <span class="font-minecraft">Player:</span> 
+              {{ selectedApplication.minecraftUsername }} 
+              <span class="text-gray-400">({{ selectedApplication.discordUsername }})</span>
+            </p>
+          </div>
+
+          <div class="flex gap-2">
+            <!-- Notes Panel -->
+            <div class="flex-grow bg-minecraft-deepslate/40 rounded-md p-4 border border-minecraft-stone/50">
+              <label class="mc-label block mb-2">Review Notes</label>
+              <textarea 
+                v-model="reviewNotes" 
+                class="mc-input w-full bg-black/30" 
+                rows="4"
+                placeholder="Enter notes about this application (optional)"
+              ></textarea>
+            </div>
+
+            <!-- Status Panel -->
+            <div class="w-16 bg-minecraft-deepslate/40 rounded-md px-2 py-4 border border-minecraft-stone/50 flex flex-col items-center">
+              <div class="relative h-40 w-full flex items-center justify-center">
+                <!-- Slider Track Container -->
+                <div class="relative h-full w-2 flex items-center justify-center">
+                  <!-- Gradient Track -->
+                  <div class="w-2 h-full rounded-full relative overflow-hidden">
+                    <div class="absolute inset-0 bg-gradient-to-b from-green-500 via-yellow-500 to-red-500"></div>
+                    <!-- Track Markers -->
+                    <div class="absolute inset-x-[-4px] top-0 h-[2px] bg-white/20"></div>
+                    <div class="absolute inset-x-[-4px] top-1/2 h-[2px] bg-white/20 -translate-y-px"></div>
+                    <div class="absolute inset-x-[-4px] bottom-0 h-[2px] bg-white/20"></div>
+                  </div>
+
+                  <!-- Click Areas -->
+                  <div class="absolute inset-x-[-12px] h-1/3 top-0 cursor-pointer" @click="setAcceptanceStatus('accepted')"></div>
+                  <div class="absolute inset-x-[-12px] h-1/3 top-1/3 cursor-pointer" @click="setAcceptanceStatus('pending')"></div>
+                  <div class="absolute inset-x-[-12px] h-1/3 top-2/3 cursor-pointer" @click="setAcceptanceStatus('rejected')"></div>
+
+                  <!-- Slider Handle -->
+                  <div 
+                    ref="sliderHandle"
+                    class="absolute w-7 h-7 left-[-12px] rounded-full shadow-lg cursor-grab active:cursor-grabbing will-change-transform flex items-center justify-center"
+                    :class="{
+                      'bg-green-600 border-green-400 shadow-green-500/30': acceptanceStatus === 'accepted',
+                      'bg-yellow-600 border-yellow-400 shadow-yellow-500/30': acceptanceStatus === 'pending',
+                      'bg-red-600 border-red-400 shadow-red-500/30': acceptanceStatus === 'rejected'
+                    }"
+                    :style="{
+                      top: acceptanceStatus === 'accepted' ? '0%' : 
+                           acceptanceStatus === 'pending' ? 'calc(50% - 14px)' : 'calc(100% - 28px)',
+                      borderWidth: '2px',
+                      transform: `scale(${isDragging ? 1.1 : 1})`,
+                      transition: 'transform 0.15s ease-out, background-color 0.2s ease-out, border-color 0.2s ease-out'
+                    }"
+                    @mousedown="startDragging"
+                  >
+                    <!-- Handle Content -->
+                    <span class="text-white text-sm font-minecraft leading-none select-none">
+                      {{ acceptanceStatus === 'accepted' ? '✓' : 
+                         acceptanceStatus === 'pending' ? '?' : '✕' }}
+                    </span>
+
+                    <!-- Tooltip -->
+                    <div 
+                      class="absolute left-full ml-2 whitespace-nowrap px-2 py-1 bg-black/90 text-white text-xs rounded pointer-events-none transform origin-left transition-all duration-200 border border-white/10"
+                      :class="{
+                        'opacity-0 scale-95 translate-x-2': isDragging,
+                        'opacity-100 scale-100 translate-x-0': !isDragging
+                      }"
+                      :style="{ zIndex: 50 }"
+                    >
+                      {{ acceptanceStatus === 'accepted' ? 'Accept Application' : 
+                         acceptanceStatus === 'pending' ? 'Pending Decision' : 'Reject Application' }}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
         
-        <div class="flex justify-end gap-2">
+        <!-- Action Buttons Panel -->
+        <div class="flex justify-center gap-2 bg-minecraft-deepslate/40 rounded-md p-4 border border-minecraft-stone/50 mt-2">
           <button @click="showReviewModal = false" class="mc-button bg-gray-600 hover:bg-gray-700 border-gray-800">
             Cancel
           </button>
@@ -271,7 +359,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick } from 'vue';
+import { ref, onMounted, onUnmounted, nextTick } from 'vue';
 import { gsap } from 'gsap';
 import api from '../services/api';
 
@@ -294,10 +382,93 @@ const isProcessing = ref(null); // Track which application is being processed (r
 const showReviewModal = ref(false);
 const selectedApplication = ref(null);
 const reviewNotes = ref('');
+const acceptanceStatus = ref('pending'); // Default to pending
 const isSubmittingReview = ref(false);
 
 // Notes modal state
 const showNotesModal = ref(false);
+
+// Add to script setup section, after the existing state declarations:
+const sliderHandle = ref(null);
+let isDragging = false;
+let startY = 0;
+let startTop = 0;
+const lastCopiedUsername = ref('');
+
+function startDragging(event) {
+  isDragging = true;
+  startY = event.clientY;
+  const handleStyle = window.getComputedStyle(sliderHandle.value);
+  startTop = parseInt(handleStyle.top);
+  
+  // Add event listeners for drag and release
+  document.addEventListener('mousemove', handleDrag);
+  document.addEventListener('mouseup', stopDragging);
+  
+  // Prevent text selection while dragging
+  event.preventDefault();
+}
+
+function handleDrag(event) {
+  if (!isDragging) return;
+  
+  const deltaY = event.clientY - startY;
+  const parentHeight = sliderHandle.value.parentElement.offsetHeight - sliderHandle.value.offsetHeight;
+  let newTop = Math.max(0, Math.min(parentHeight, startTop + deltaY));
+  
+  // Use requestAnimationFrame for smoother animations
+  requestAnimationFrame(() => {
+    sliderHandle.value.style.top = `${newTop}px`;
+  });
+  
+  // Determine which third of the track we're in
+  const third = parentHeight / 3;
+  const newStatus = newTop < third ? 'accepted' : 
+                   newTop < third * 2 ? 'pending' : 'rejected';
+  
+  if (acceptanceStatus.value !== newStatus) {
+    acceptanceStatus.value = newStatus;
+  }
+}
+
+function stopDragging() {
+  isDragging = false;
+  document.removeEventListener('mousemove', handleDrag);
+  document.removeEventListener('mouseup', stopDragging);
+  
+  // Snap to position with animation
+  setAcceptanceStatus(acceptanceStatus.value);
+}
+
+function setAcceptanceStatus(status) {
+  const positions = {
+    accepted: '0%',
+    pending: 'calc(50% - 14px)',
+    rejected: 'calc(100% - 28px)'
+  };
+  
+  // Use requestAnimationFrame for smoother animations
+  requestAnimationFrame(() => {
+    gsap.to(sliderHandle.value, {
+      top: positions[status],
+      duration: 0.3,
+      ease: 'back.out(1.7)',
+      clearProps: 'transform',
+      onComplete: () => {
+        // Ensure final position is exact
+        sliderHandle.value.style.top = positions[status];
+      }
+    });
+  });
+  
+  acceptanceStatus.value = status;
+}
+
+// Clean up event listeners when component is destroyed
+onUnmounted(() => {
+  document.removeEventListener('mousemove', handleDrag);
+  document.removeEventListener('mouseup', stopDragging);
+});
 
 // Authenticate user
 async function authenticate() {
@@ -361,6 +532,8 @@ function getAgeColor(age) {
 function openReviewModal(application) {
   selectedApplication.value = application;
   reviewNotes.value = '';
+  // Set initial acceptance status from existing data or default to pending
+  acceptanceStatus.value = application.acceptanceStatus || 'pending';
   showReviewModal.value = true;
 }
 
@@ -381,7 +554,8 @@ async function submitReview() {
     const response = await api.reviewApplication(
       selectedApplication.value.id,
       authenticatedPassword.value,
-      reviewNotes.value
+      reviewNotes.value,
+      acceptanceStatus.value
     );
     
     if (response.success) {
@@ -505,12 +679,11 @@ async function refreshData() {
   try {
     const data = await api.getApplications(authenticatedPassword.value);
     
-    // Animate the data update
     const oldLength = applications.value.length;
-    applications.value = data;
+    // Sort applications in reverse order by ID
+    applications.value = data.sort((a, b) => b.id - a.id);
     
     if (oldLength === 0 && data.length > 0) {
-      // First data load, animate the table appearance
       nextTick(() => {
         gsap.from('table', {
           opacity: 0,
@@ -526,12 +699,20 @@ async function refreshData() {
           duration: 0.4,
           ease: 'power2.out'
         });
+
+        // Scroll to top after animation
+        setTimeout(() => {
+          const container = document.querySelector('.overflow-auto');
+          if (container) {
+            container.scrollTo({ top: 0, behavior: 'smooth' });
+          }
+        }, 500);
       });
     } else if (data.length > oldLength) {
       // New entries, animate only the new ones
       nextTick(() => {
         const rows = document.querySelectorAll('.application-row');
-        for (let i = oldLength; i < rows.length; i++) {
+        for (let i = 0; i < data.length - oldLength; i++) {
           gsap.from(rows[i], {
             opacity: 0,
             y: 15,
@@ -540,6 +721,14 @@ async function refreshData() {
             delay: i * 0.05
           });
         }
+
+        // Scroll to top after animation
+        setTimeout(() => {
+          const container = document.querySelector('.overflow-auto');
+          if (container) {
+            container.scrollTo({ top: 0, behavior: 'smooth' });
+          }
+        }, 500);
       });
     }
   } catch (error) {
@@ -611,6 +800,21 @@ function formatDate(dateString, includeTime = false) {
   
   return date.toLocaleDateString('en-US', options);
 }
+
+// Add to script setup section, after the existing functions:
+async function copyToClipboard(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    lastCopiedUsername.value = text;
+    
+    // Reset the copied state after 2 seconds
+    setTimeout(() => {
+      lastCopiedUsername.value = '';
+    }, 2000);
+  } catch (err) {
+    console.error('Failed to copy text: ', err);
+  }
+}
 </script>
 
 <style scoped>
@@ -671,6 +875,25 @@ function formatDate(dateString, includeTime = false) {
   text-shadow: 0 0 5px rgba(255, 82, 82, 0.7);
 }
 
+/* Add some additional table styling for better readability */
+table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+th, td {
+  position: relative;
+}
+
+/* Slightly lighter backgrounds for better contrast between rows */
+tbody tr:nth-child(even) {
+  background-color: rgba(30, 30, 30, 0.4) !important;
+}
+
+tbody tr:hover {
+  background-color: rgba(60, 100, 140, 0.3) !important;
+}
+
 @keyframes pulse {
   0% {
     opacity: 0.7;
@@ -715,6 +938,31 @@ function formatDate(dateString, includeTime = false) {
   }
   100% {
     left: 100%;
+  }
+}
+
+.copied {
+  color: #ffd700 !important;
+  animation: copyPulse 0.5s ease-out;
+}
+
+.copy-icon {
+  transition: opacity 0.2s ease-out;
+}
+
+.cursor-pointer:hover .copy-icon {
+  opacity: 1 !important;
+}
+
+@keyframes copyPulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
   }
 }
 </style> 
