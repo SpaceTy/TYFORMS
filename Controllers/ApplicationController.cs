@@ -143,6 +143,7 @@ public class ApplicationController : ControllerBase
     {
         public int Id { get; set; }
         public string? Notes { get; set; }
+        public string? AcceptanceStatus { get; set; }
     }
 
     // POST: api/application/review
@@ -165,6 +166,11 @@ public class ApplicationController : ControllerBase
             application.IsReviewed = true;
             application.ReviewedAt = DateTime.UtcNow;
             application.ReviewNotes = request.Notes;
+            
+            // Set acceptance status (defaults to "pending" if not specified)
+            application.AcceptanceStatus = string.IsNullOrEmpty(request.AcceptanceStatus) 
+                ? "pending" 
+                : request.AcceptanceStatus;
 
             await _context.SaveChangesAsync();
             
@@ -197,6 +203,7 @@ public class ApplicationController : ControllerBase
             application.IsReviewed = false;
             application.ReviewedAt = null;
             application.ReviewNotes = null;
+            application.AcceptanceStatus = "pending"; // Reset to pending when unreviewed
 
             await _context.SaveChangesAsync();
             

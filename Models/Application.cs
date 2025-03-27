@@ -32,4 +32,6 @@ public class Application
     public DateTime? ReviewedAt { get; set; }
     
     public string? ReviewNotes { get; set; }
+
+    public string? AcceptanceStatus { get; set; }
 } 

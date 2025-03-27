@@ -35,8 +35,17 @@ using (var scope = app.Services.CreateScope())
     var services = scope.ServiceProvider;
     var context = services.GetRequiredService<ApplicationDbContext>();
     
-    // This will create the database and apply any pending migrations
-    context.Database.Migrate();
+    try
+    {
+        // This will create the database and apply any pending migrations
+        context.Database.Migrate();
+    }
+    catch (Exception ex)
+    {
+        // If migration fails, try to ensure the database is created
+        context.Database.EnsureCreated();
+        Console.WriteLine($"Warning: Could not apply migrations: {ex.Message}");
+    }
 }
 
 // Configure the HTTP request pipeline.

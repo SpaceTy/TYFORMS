@@ -300,6 +300,6 @@
 /home/st/TYFORMS/obj/Debug/net9.0/TYBLOG.pdb
 /home/st/TYFORMS/obj/Debug/net9.0/TYBLOG.genruntimeconfig.cache
 /home/st/TYFORMS/obj/Debug/net9.0/ref/TYBLOG.dll
-/home/st/TYFORMS/obj/Debug/net9.0/compressed/iio30qiqu0-ecpdxdhm5i.gz
-/home/st/TYFORMS/obj/Debug/net9.0/compressed/83emu8d9ql-kbky8eat5i.gz
-/home/st/TYFORMS/obj/Debug/net9.0/compressed/395s3icc2f-cmmxn3720g.gz
+/home/st/TYFORMS/obj/Debug/net9.0/compressed/l2yvxvsa1c-za2df14cq0.gz
+/home/st/TYFORMS/obj/Debug/net9.0/compressed/uzv20lrju8-y9znv0syum.gz
+/home/st/TYFORMS/obj/Debug/net9.0/compressed/395s3icc2f-exkrry9vrh.gz
