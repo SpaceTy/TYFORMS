@@ -1,40 +1,40 @@
 ﻿<Project>
   <ItemGroup>
-    <StaticWebAsset Include="$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\assets\index-B9CPlcSA.js'))">
+    <StaticWebAsset Include="$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\assets\index-D4fsZpOi.js'))">
       <SourceType>Package</SourceType>
       <SourceId>TYBLOG</SourceId>
       <ContentRoot>$(MSBuildThisFileDirectory)..\staticwebassets\</ContentRoot>
       <BasePath>_content/TYBLOG</BasePath>
-      <RelativePath>assets/index-B9CPlcSA.js</RelativePath>
+      <RelativePath>assets/index-D4fsZpOi.js</RelativePath>
       <AssetKind>All</AssetKind>
       <AssetMode>All</AssetMode>
       <AssetRole>Primary</AssetRole>
       <RelatedAsset></RelatedAsset>
       <AssetTraitName></AssetTraitName>
       <AssetTraitValue></AssetTraitValue>
-      <Fingerprint>za2df14cq0</Fingerprint>
-      <Integrity>FWDKq7bpa/DEl+q+s/IxDsTX4b93GjCVQY4IF43PGGc=</Integrity>
+      <Fingerprint>xsikeia2jn</Fingerprint>
+      <Integrity>z+1I0b58MVXiF/2Y0/z5tSV0rCsC27Co253z8O9q0M4=</Integrity>
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-      <OriginalItemSpec>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\assets\index-B9CPlcSA.js'))</OriginalItemSpec>
+      <OriginalItemSpec>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\assets\index-D4fsZpOi.js'))</OriginalItemSpec>
     </StaticWebAsset>
-    <StaticWebAsset Include="$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\assets\index-DNjCBfgK.css'))">
+    <StaticWebAsset Include="$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\assets\index-DZP_G2Tz.css'))">
       <SourceType>Package</SourceType>
       <SourceId>TYBLOG</SourceId>
       <ContentRoot>$(MSBuildThisFileDirectory)..\staticwebassets\</ContentRoot>
       <BasePath>_content/TYBLOG</BasePath>
-      <RelativePath>assets/index-DNjCBfgK.css</RelativePath>
+      <RelativePath>assets/index-DZP_G2Tz.css</RelativePath>
       <AssetKind>All</AssetKind>
       <AssetMode>All</AssetMode>
       <AssetRole>Primary</AssetRole>
       <RelatedAsset></RelatedAsset>
       <AssetTraitName></AssetTraitName>
       <AssetTraitValue></AssetTraitValue>
-      <Fingerprint>y9znv0syum</Fingerprint>
-      <Integrity>qi60VBFhPMGP4sjw+nBNk6GzwjbiP9/ygUwOgN+z0Bw=</Integrity>
+      <Fingerprint>u35p7u4504</Fingerprint>
+      <Integrity>5vpHUeJPnRqQA6NGfnNI66TulP78r9HS7Tm72XO9q04=</Integrity>
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-      <OriginalItemSpec>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\assets\index-DNjCBfgK.css'))</OriginalItemSpec>
+      <OriginalItemSpec>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\assets\index-DZP_G2Tz.css'))</OriginalItemSpec>
     </StaticWebAsset>
     <StaticWebAsset Include="$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\index.html'))">
       <SourceType>Package</SourceType>
@@ -48,8 +48,8 @@
       <RelatedAsset></RelatedAsset>
       <AssetTraitName></AssetTraitName>
       <AssetTraitValue></AssetTraitValue>
-      <Fingerprint>exkrry9vrh</Fingerprint>
-      <Integrity>Tkp+LZZOxI2qsTDU74i8BdyCUP5ivdmxfixPV5aYHsc=</Integrity>
+      <Fingerprint>dnekn2ffqw</Fingerprint>
+      <Integrity>KfYiXt4GVQpGuiltc0BJBdTOu04a9xBjHTh4Lw6OdNU=</Integrity>
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
       <OriginalItemSpec>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\index.html'))</OriginalItemSpec>

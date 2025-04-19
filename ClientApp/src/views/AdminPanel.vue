@@ -815,6 +815,57 @@ async function copyToClipboard(text) {
     console.error('Failed to copy text: ', err);
   }
 }
+
+// Add this new function after the existing functions
+function updateTooltipPosition(event) {
+  const tooltip = event.currentTarget.querySelector('.tooltip');
+  if (tooltip) {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const tooltipHeight = tooltip.offsetHeight;
+    const tooltipWidth = tooltip.offsetWidth;
+    
+    // Position tooltip above or below based on available space
+    let top = rect.bottom + window.scrollY + 5;
+    
+    // If tooltip would go off bottom of viewport, show it above instead
+    if (top + tooltipHeight > window.innerHeight) {
+      top = rect.top + window.scrollY - tooltipHeight - 5;
+    }
+    
+    // Center horizontally relative to the container
+    let left = rect.left + (rect.width / 2) - (tooltipWidth / 2);
+    
+    // Ensure tooltip doesn't go off screen horizontally
+    left = Math.max(10, Math.min(left, window.innerWidth - tooltipWidth - 10));
+    
+    tooltip.style.top = `${top}px`;
+    tooltip.style.left = `${left}px`;
+  }
+}
+
+// Add mounted hook to set up event listeners
+onMounted(() => {
+  // ... existing mounted code ...
+  
+  // Add event listeners for tooltip positioning
+  const tooltipContainers = document.querySelectorAll('.tooltip-container');
+  tooltipContainers.forEach(container => {
+    container.addEventListener('mouseenter', updateTooltipPosition);
+    container.addEventListener('mousemove', updateTooltipPosition);
+  });
+});
+
+// Add cleanup in onUnmounted
+onUnmounted(() => {
+  // ... existing unmounted code ...
+  
+  // Remove tooltip event listeners
+  const tooltipContainers = document.querySelectorAll('.tooltip-container');
+  tooltipContainers.forEach(container => {
+    container.removeEventListener('mouseenter', updateTooltipPosition);
+    container.removeEventListener('mousemove', updateTooltipPosition);
+  });
+});
 </script>
 
 <style scoped>
@@ -849,19 +900,19 @@ async function copyToClipboard(text) {
 
 .tooltip {
   display: none;
-  position: absolute;
+  position: fixed;  /* Changed from absolute to fixed for better positioning */
   background-color: rgba(0, 0, 0, 0.9);
   border: 1px solid #555;
   color: white;
   padding: 0.5rem;
   border-radius: 0.25rem;
-  z-index: 20;
-  top: 100%;
-  left: 0;
+  z-index: 9999;  /* Increased z-index to ensure it's above all other elements */
   white-space: normal;
   max-width: 300px;
   font-size: 0.75rem;
   margin-top: 0.25rem;
+  pointer-events: none;  /* Prevents tooltip from interfering with other interactions */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);  /* Added shadow for better visibility */
 }
 
 .tooltip-container:hover .tooltip {

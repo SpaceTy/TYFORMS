@@ -3357,11 +3357,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "/home/st/TYFORMS/TYBLOG.csproj",
+      "projectUniqueName": "/home/st/Documents/coding/TYFORMS/TYBLOG.csproj",
       "projectName": "TYBLOG",
-      "projectPath": "/home/st/TYFORMS/TYBLOG.csproj",
+      "projectPath": "/home/st/Documents/coding/TYFORMS/TYBLOG.csproj",
       "packagesPath": "/home/st/.nuget/packages/",
-      "outputPath": "/home/st/TYFORMS/obj/",
+      "outputPath": "/home/st/Documents/coding/TYFORMS/obj/",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "/home/st/.nuget/NuGet/NuGet.Config"
@@ -3370,7 +3370,6 @@
         "net9.0"
       ],
       "sources": {
-        "/usr/lib64/dotnet/library-packs": {},
         "https://api.nuget.org/v3/index.json": {}
       },
       "frameworks": {
@@ -3433,6 +3432,12 @@
         ],
         "assetTargetFallback": true,
         "warn": true,
+        "downloadDependencies": [
+          {
+            "name": "Microsoft.AspNetCore.App.Ref",
+            "version": "[9.0.3, 9.0.3]"
+          }
+        ],
         "frameworkReferences": {
           "Microsoft.AspNetCore.App": {
             "privateAssets": "none"
@@ -3441,7 +3446,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "/usr/lib64/dotnet/sdk/9.0.103/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "/usr/share/dotnet/sdk/9.0.104/PortableRuntimeIdentifierGraph.json"
       }
     }
   }
