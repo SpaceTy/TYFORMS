@@ -27,7 +27,7 @@ func DefaultConfig() *Config {
 	cfg.Database.Path = "applications.db"
 
 	// Default server port
-	cfg.Server.Port = 8080
+	cfg.Server.Port = 5099
 
 	// Default admin password (should be changed in production)
 	cfg.Admin.Password = "admin123"

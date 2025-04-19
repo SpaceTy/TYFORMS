@@ -37,7 +37,7 @@ func main() {
 
 	// Start server
 	log.Printf("Server starting on port %d", cfg.Server.Port)
-	if err := http.ListenAndServe(":8080", nil); err != nil {
+	if err := http.ListenAndServe(":5099", nil); err != nil {
 		log.Fatalf("Error starting server: %v", err)
 	}
 }
