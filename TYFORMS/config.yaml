@@ -2,7 +2,7 @@ database:
   path: "applications.db"
 
 server:
-  port: 8080
+  port: 5099
 
 admin:
   password: "admin123" 
