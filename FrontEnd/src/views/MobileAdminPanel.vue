@@ -571,29 +571,29 @@ async function refreshData() {
   errorMessage.value = '';
   
   try {
-    const data = await api.getApplications(authenticatedPassword.value);
+    const response = await api.getApplications(authenticatedPassword.value);
     
-    if (!data || !Array.isArray(data)) {
-      throw new Error('Invalid data received from server');
-    }
-    
-    const oldLength = applications.value.length;
-    // Sort applications in reverse order by ID
-    applications.value = data.sort((a, b) => b.id - a.id);
-    
-    if (oldLength === 0 && data.length > 0) {
-      nextTick(() => {
-        const cards = document.querySelectorAll('.application-card');
-        if (cards.length > 0) {
-          gsap.from(cards, {
-            opacity: 0,
-            y: 20,
-            stagger: 0.05,
-            duration: 0.4,
-            ease: 'power2.out'
-          });
-        }
-      });
+    if (response && response.success) {
+      const oldLength = applications.value.length;
+      // Sort applications in reverse order by ID, handle null response
+      applications.value = (response.data || []).sort((a, b) => b.id - a.id);
+      
+      if (oldLength === 0 && applications.value.length > 0) {
+        nextTick(() => {
+          const cards = document.querySelectorAll('.application-card');
+          if (cards.length > 0) {
+            gsap.from(cards, {
+              opacity: 0,
+              y: 20,
+              stagger: 0.05,
+              duration: 0.4,
+              ease: 'power2.out'
+            });
+          }
+        });
+      }
+    } else {
+      applications.value = [];
     }
   } catch (error) {
     console.error('Error fetching applications:', error);
