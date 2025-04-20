@@ -1,0 +1,54 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /* Optimize spacing for Press Start 2P font which is more condensed */
+  h1, h2, h3, h4, h5, h6 {
+    letter-spacing: 0.05em;
+    line-height: 1.6;
+  }
+  
+  p, span, div {
+    line-height: 1.6;
+  }
+  
+  .font-pixel {
+    letter-spacing: 0.05em;
+    line-height: 1.6;
+  }
+}
+
+@layer components {
+  .mc-button {
+    @apply bg-minecraft-stone font-minecraft text-white py-2 px-4 border-b-4 border-minecraft-deepslate hover:bg-minecraft-earth hover:border-minecraft-stone transition-all duration-200 focus:outline-none text-center cursor-pointer text-sm;
+  }
+  
+  .mc-container {
+    @apply bg-black/80 border-2 border-minecraft-stone p-6 rounded-md shadow-xl;
+  }
+  
+  .mc-input {
+    @apply bg-minecraft-deepslate/80 border-2 border-minecraft-stone rounded-md py-2 px-3 text-white w-full focus:outline-none focus:ring-2 focus:ring-minecraft-water transition-all duration-200;
+  }
+  
+  .mc-radio {
+    @apply appearance-none h-5 w-5 border-2 border-minecraft-stone rounded-sm bg-minecraft-deepslate/80 checked:bg-minecraft-green checked:border-minecraft-green focus:outline-none transition-all duration-200 cursor-pointer;
+  }
+  
+  .mc-label {
+    @apply block text-white font-minecraft mb-2 text-sm;
+  }
+  
+  .mc-title {
+    @apply text-2xl font-minecraft text-minecraft-water mb-6;
+  }
+  
+  .fade-enter-active, .fade-leave-active {
+    transition: opacity 0.3s;
+  }
+  
+  .fade-enter-from, .fade-leave-to {
+    opacity: 0;
+  }
+} 

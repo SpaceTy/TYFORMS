@@ -3,6 +3,7 @@ package database
 import (
 	"database/sql"
 	"fmt"
+	"log"
 	"tyforms/internal/models"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -52,6 +53,8 @@ func createTables(db *sql.DB) error {
 
 // CreateApplication inserts a new application into the database
 func (s *SQLiteStore) CreateApplication(app *models.MinecraftApplication) error {
+	log.Printf("Preparing to insert application for user: %s", app.MinecraftUsername)
+
 	query := `
 	INSERT INTO applications (
 		discord_username, minecraft_username, age, favorite_about_minecraft,
@@ -59,6 +62,7 @@ func (s *SQLiteStore) CreateApplication(app *models.MinecraftApplication) error 
 		acceptance_status
 	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
 
+	log.Printf("Executing database query")
 	result, err := s.db.Exec(query,
 		app.DiscordUsername,
 		app.MinecraftUsername,
@@ -71,15 +75,19 @@ func (s *SQLiteStore) CreateApplication(app *models.MinecraftApplication) error 
 		app.AcceptanceStatus,
 	)
 	if err != nil {
+		log.Printf("Database error during Exec: %v", err)
 		return fmt.Errorf("error creating application: %w", err)
 	}
 
+	log.Printf("Getting last insert ID")
 	id, err := result.LastInsertId()
 	if err != nil {
+		log.Printf("Error getting last insert ID: %v", err)
 		return fmt.Errorf("error getting last insert ID: %w", err)
 	}
 
 	app.ID = int(id)
+	log.Printf("Successfully created application with ID: %d", app.ID)
 	return nil
 }
 

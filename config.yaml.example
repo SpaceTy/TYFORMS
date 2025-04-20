@@ -1,0 +1,8 @@
+database:
+  path: "applications.db"
+
+server:
+  port: 5099
+
+admin:
+  password: "admin123"  # Default password - change this in your actual config.yaml 
