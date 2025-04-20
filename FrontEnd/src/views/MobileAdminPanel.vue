@@ -70,7 +70,7 @@
             <div 
               v-for="(app, index) in applications" 
               :key="app.id"
-              class="bg-black/50 border border-minecraft-stone rounded-md p-3"
+              class="application-card bg-black/50 border border-minecraft-stone rounded-md p-3"
               :class="{'bg-minecraft-important-red/10': !app.isReviewed}"
             >
               <!-- Header -->
@@ -303,12 +303,16 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, nextTick } from 'vue';
+import { ref, onMounted, onUnmounted, nextTick, inject } from 'vue';
 import { gsap } from 'gsap';
 import api from '../services/api';
+import { useRouter } from 'vue-router';
+
+const router = useRouter();
+const confirmation = inject('confirmation');
 
 // UI state
-const isLoading = ref(false);
+const isLoading = ref(true);
 const errorMessage = ref('');
 const applications = ref([]);
 
@@ -422,10 +426,24 @@ async function submitReview() {
       acceptanceStatus.value
     );
     
-    if (response.success) {
+    // Validate the response has the required structure
+    if (response && 
+        typeof response === 'object' && 
+        response.success === true && 
+        response.data && 
+        typeof response.data === 'object' && 
+        'id' in response.data && 
+        'isReviewed' in response.data && 
+        'reviewedAt' in response.data) {
+      
       const index = applications.value.findIndex(app => app.id === selectedApplication.value.id);
       if (index !== -1) {
-        applications.value[index] = response.application;
+        // Ensure acceptanceStatus is set
+        if (!response.data.acceptanceStatus) {
+          response.data.acceptanceStatus = acceptanceStatus.value;
+        }
+        
+        applications.value[index] = response.data;
         
         nextTick(() => {
           const cards = document.querySelectorAll('.application-card');
@@ -439,8 +457,12 @@ async function submitReview() {
       }
       
       showReviewModal.value = false;
+    } else {
+      console.error('Invalid response structure:', response);
+      throw new Error('Invalid response from server');
     }
   } catch (error) {
+    console.error('Error submitting review:', error);
     errorMessage.value = 'Failed to review application. Please try again.';
   } finally {
     isSubmittingReview.value = false;
@@ -449,8 +471,15 @@ async function submitReview() {
 }
 
 // Confirm unreview
-function confirmUnreview(applicationId) {
-  if (confirm('Are you sure you want to remove the reviewed status?')) {
+async function confirmUnreview(applicationId) {
+  const confirmed = await confirmation.confirm({
+    title: 'Remove Review Status',
+    message: 'Are you sure you want to remove the reviewed status?',
+    confirmText: 'Remove',
+    cancelText: 'Keep'
+  });
+  
+  if (confirmed) {
     unreviewApplication(applicationId);
   }
 }
@@ -489,8 +518,15 @@ async function unreviewApplication(applicationId) {
 }
 
 // Confirm delete
-function confirmDelete(applicationId) {
-  if (confirm('Are you sure you want to delete this application? This action cannot be undone.')) {
+async function confirmDelete(applicationId) {
+  const confirmed = await confirmation.confirm({
+    title: 'Delete Application',
+    message: 'Are you sure you want to delete this application? This action cannot be undone.',
+    confirmText: 'Delete',
+    cancelText: 'Cancel'
+  });
+  
+  if (confirmed) {
     deleteApplication(applicationId);
   }
 }
@@ -537,52 +573,32 @@ async function refreshData() {
   try {
     const data = await api.getApplications(authenticatedPassword.value);
     
+    if (!data || !Array.isArray(data)) {
+      throw new Error('Invalid data received from server');
+    }
+    
     const oldLength = applications.value.length;
     // Sort applications in reverse order by ID
     applications.value = data.sort((a, b) => b.id - a.id);
     
     if (oldLength === 0 && data.length > 0) {
       nextTick(() => {
-        gsap.from('.application-card', {
-          opacity: 0,
-          y: 20,
-          stagger: 0.05,
-          duration: 0.4,
-          ease: 'power2.out'
-        });
-
-        // Scroll to top after animation
-        setTimeout(() => {
-          const container = document.querySelector('.overflow-auto');
-          if (container) {
-            container.scrollTo({ top: 0, behavior: 'smooth' });
-          }
-        }, 500);
-      });
-    } else if (data.length > oldLength) {
-      nextTick(() => {
         const cards = document.querySelectorAll('.application-card');
-        for (let i = 0; i < data.length - oldLength; i++) {
-          gsap.from(cards[i], {
+        if (cards.length > 0) {
+          gsap.from(cards, {
             opacity: 0,
             y: 20,
+            stagger: 0.05,
             duration: 0.4,
-            ease: 'power2.out',
-            delay: i * 0.05
+            ease: 'power2.out'
           });
         }
-
-        // Scroll to top after animation
-        setTimeout(() => {
-          const container = document.querySelector('.overflow-auto');
-          if (container) {
-            container.scrollTo({ top: 0, behavior: 'smooth' });
-          }
-        }, 500);
       });
     }
   } catch (error) {
-    errorMessage.value = 'Failed to load applications. Please try again.';
+    console.error('Error fetching applications:', error);
+    errorMessage.value = 'Failed to fetch applications. Please try again.';
+    applications.value = [];
   } finally {
     isLoading.value = false;
   }
@@ -654,10 +670,10 @@ function formatDate(dateString, includeTime = false) {
   return date.toLocaleDateString('en-US', options);
 }
 
-// Setup on component mount
+// Call refreshData on component mount
 onMounted(() => {
-  if (passwordInput.value) {
-    passwordInput.value.focus();
+  if (isAuthenticated.value) {
+    refreshData();
   }
 });
 </script>

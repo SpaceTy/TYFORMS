@@ -307,29 +307,7 @@ async function submitForm() {
     isSubmitting.value = true;
     errorMessage.value = '';
     
-    // Transform to match backend model
-    const applicationData = {
-      discordUsername: form.discordUsername,
-      minecraftUsername: form.minecraftUsername,
-      age: form.age,
-      favoriteAboutMinecraft: form.favoriteAboutMinecraft,
-      understandingOfSMP: form.understandingOfSMP,
-      joinedDiscord: form.joinedDiscord
-    };
-    
-    await api.submitApplication(applicationData);
-    
-    // Animate out
-    const formElement = document.querySelector('form');
-    if (formElement) {
-      await gsap.to(formElement, { 
-        opacity: 0, 
-        y: -20, 
-        duration: 0.5 
-      });
-    }
-    
-    // Redirect to thank you page
+    await api.submitApplication(form);
     router.push('/thank-you');
   } catch (error) {
     if (error.response && error.response.status === 409) {

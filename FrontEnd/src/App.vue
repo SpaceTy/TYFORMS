@@ -39,14 +39,45 @@
     >
       &copy; {{ new Date().getFullYear() }} TYSMP. All rights reserved.
     </footer>
+
+    <!-- Global Confirmation Dialog -->
+    <ConfirmationDialog
+      :show="show"
+      :title="title"
+      :message="message"
+      :confirm-text="confirmText"
+      :cancel-text="cancelText"
+      :prevent-backdrop-close="preventBackdropClose"
+      @confirm="handleConfirm"
+      @cancel="handleCancel"
+      @update:show="show = $event"
+    />
   </div>
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, provide } from 'vue';
 import { useRoute } from 'vue-router';
+import ConfirmationDialog from './components/ConfirmationDialog.vue';
+import { useConfirmation } from './composables/useConfirmation';
 
 const route = useRoute();
+const {
+  show,
+  title,
+  message,
+  confirmText,
+  cancelText,
+  preventBackdropClose,
+  confirm,
+  handleConfirm,
+  handleCancel
+} = useConfirmation();
+
+// Provide the confirmation functionality to all child components
+provide('confirmation', {
+  confirm
+});
 
 // Check if we're on admin route to adjust layout
 const isAdminRoute = computed(() => {

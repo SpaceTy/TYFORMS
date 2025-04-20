@@ -37,16 +37,16 @@
           <h2 class="mc-title mb-0">Applications Dashboard</h2>
           
           <div class="flex gap-2">
-            <button @click="refreshData" class="mc-button text-sm">
+            <button @click="handleRefresh" class="mc-button text-sm">
               <span v-if="isLoading">Loading...</span>
               <span v-else>Refresh</span>
             </button>
             
-            <button @click="exportToCsv" class="mc-button text-sm">
+            <button @click="handleExport" class="mc-button text-sm">
               Export CSV
             </button>
             
-            <button @click="logout" class="mc-button text-sm bg-red-500 hover:bg-red-600 border-red-700">
+            <button @click="handleLogout" class="mc-button text-sm bg-red-500 hover:bg-red-600 border-red-700">
               Logout
             </button>
           </div>
@@ -359,9 +359,13 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, nextTick } from 'vue';
+import { ref, onMounted, onUnmounted, nextTick, inject } from 'vue';
 import { gsap } from 'gsap';
 import api from '../services/api';
+import { useRouter } from 'vue-router';
+
+const router = useRouter();
+const confirmation = inject('confirmation');
 
 // UI state
 const isLoading = ref(false);
@@ -386,7 +390,7 @@ const acceptanceStatus = ref('pending'); // Default to pending
 const isSubmittingReview = ref(false);
 
 // Notes modal state
-const showNotesModal = ref(false);
+const showNotesModal = ref(null);
 
 // Add to script setup section, after the existing state declarations:
 const sliderHandle = ref(null);
@@ -578,8 +582,15 @@ async function submitReview() {
 }
 
 // Confirm unreview
-function confirmUnreview(applicationId) {
-  if (confirm('Are you sure you want to remove the reviewed status?')) {
+async function confirmUnreview(applicationId) {
+  const confirmed = await confirmation.confirm({
+    title: 'Remove Review Status',
+    message: 'Are you sure you want to remove the reviewed status?',
+    confirmText: 'Remove',
+    cancelText: 'Keep'
+  });
+  
+  if (confirmed) {
     unreviewApplication(applicationId);
   }
 }
@@ -607,8 +618,15 @@ async function unreviewApplication(applicationId) {
 }
 
 // Confirm delete
-function confirmDelete(applicationId) {
-  if (confirm('Are you sure you want to delete this application? This action cannot be undone.')) {
+async function confirmDelete(applicationId) {
+  const confirmed = await confirmation.confirm({
+    title: 'Delete Application',
+    message: 'Are you sure you want to delete this application? This action cannot be undone.',
+    confirmText: 'Delete',
+    cancelText: 'Cancel'
+  });
+  
+  if (confirmed) {
     deleteApplication(applicationId);
   }
 }
@@ -831,6 +849,45 @@ onUnmounted(() => {
     container.removeEventListener('mousemove', updateTooltipPosition);
   });
 });
+
+const handleLogout = async () => {
+  const confirmed = await confirmation.confirm({
+    title: 'Logout',
+    message: 'Are you sure you want to logout?',
+    confirmText: 'Logout',
+    cancelText: 'Stay'
+  });
+  
+  if (confirmed) {
+    logout();
+  }
+};
+
+const handleExport = async () => {
+  const confirmed = await confirmation.confirm({
+    title: 'Export Data',
+    message: 'This will export all application data to a CSV file. Continue?',
+    confirmText: 'Export',
+    cancelText: 'Cancel'
+  });
+  
+  if (confirmed) {
+    exportToCsv();
+  }
+};
+
+const handleRefresh = async () => {
+  const confirmed = await confirmation.confirm({
+    title: 'Refresh Data',
+    message: 'This will refresh all application data. Continue?',
+    confirmText: 'Refresh',
+    cancelText: 'Cancel'
+  });
+  
+  if (confirmed) {
+    refreshData();
+  }
+};
 </script>
 
 <style scoped>
