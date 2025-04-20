@@ -82,7 +82,7 @@ export default {
         id: applicationId,
         password: adminPassword,
         notes: notes,
-        acceptanceStatus: acceptanceStatus
+        acceptance_status: acceptanceStatus
       });
       return { success: true, data: response.data };
     } catch (error) {

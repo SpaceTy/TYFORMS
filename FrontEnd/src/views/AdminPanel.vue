@@ -1,5 +1,8 @@
 <template>
   <div class="h-full w-full absolute inset-0 flex items-center justify-center">
+    <!-- Tooltip Container - Added to ensure tooltips are always on top -->
+    <div id="tooltip-root" class="fixed inset-0 pointer-events-none z-[99999]"></div>
+    
     <!-- Login Form -->
     <div v-if="!isAuthenticated" class="login-container mc-container animate-fade-in max-w-md">
       <h2 class="mc-title text-center">Admin Login</h2>
@@ -33,7 +36,8 @@
     <!-- Admin Dashboard -->
     <div v-else class="absolute inset-0 p-4">
       <div ref="adminContainerRef" class="admin-panel mc-panel w-full h-full flex flex-col">
-        <div class="flex justify-between items-center px-6 py-4 bg-minecraft-deepslate/80 rounded-t-md">
+        <!-- Fixed top bar -->
+        <div class="flex justify-between items-center px-6 py-4 bg-minecraft-deepslate/80 rounded-t-md sticky top-0 z-20">
           <h2 class="mc-title mb-0">Applications Dashboard</h2>
           
           <div class="flex gap-2">
@@ -56,6 +60,7 @@
           {{ errorMessage }}
         </div>
         
+        <!-- Scrollable content area -->
         <div class="flex-grow overflow-hidden flex flex-col p-6 bg-black/40">
           <div v-if="applications.length === 0 && !isLoading" class="text-center py-10 text-white flex-grow flex items-center justify-center">
             <div>
@@ -68,7 +73,7 @@
             <table class="w-full table-fixed bg-black/50 border border-minecraft-stone rounded-md">
               <thead class="sticky top-0 z-10">
                 <tr class="bg-minecraft-deepslate">
-                  <th class="w-16 px-3 py-3 text-left text-sm font-minecraft text-white whitespace-nowrap border-r border-minecraft-stone">#</th>
+                  <th class="w-20 px-3 py-3 text-left text-sm font-minecraft text-white whitespace-nowrap border-r border-minecraft-stone">#</th>
                   <th class="w-32 px-3 py-3 text-left text-sm font-minecraft text-white whitespace-nowrap border-r border-minecraft-stone">DC</th>
                   <th class="w-32 px-3 py-3 text-left text-sm font-minecraft text-white whitespace-nowrap border-r border-minecraft-stone">MC</th>
                   <th class="w-14 px-3 py-3 text-center text-sm font-minecraft text-white whitespace-nowrap border-r border-minecraft-stone">Age</th>
@@ -98,14 +103,13 @@
                   </td>
                   
                   <td class="px-3 py-2 text-sm border-r border-minecraft-stone/40" :class="{'text-minecraft-important-red': !app.isReviewed, 'text-white': app.isReviewed}">
-                    <div class="tooltip-container">
+                    <div class="tooltip-container" :data-tooltip="app.discordUsername">
                       <div class="truncate">{{ app.discordUsername }}</div>
-                      <div class="tooltip">{{ app.discordUsername }}</div>
                     </div>
                   </td>
                   
                   <td class="px-3 py-2 text-sm border-r border-minecraft-stone/40" :class="{'text-minecraft-important-red': !app.isReviewed, 'text-white': app.isReviewed}">
-                    <div class="tooltip-container">
+                    <div class="tooltip-container" :data-tooltip="app.minecraftUsername">
                       <div 
                         class="truncate cursor-pointer hover:text-minecraft-gold transition-colors duration-150"
                         @click="copyToClipboard(app.minecraftUsername)"
@@ -114,7 +118,6 @@
                         {{ app.minecraftUsername }}
                         <span class="copy-icon ml-1 opacity-0 group-hover:opacity-100">📋</span>
                       </div>
-                      <div class="tooltip">{{ app.minecraftUsername }}</div>
                     </div>
                   </td>
                   
@@ -123,16 +126,14 @@
                   </td>
                   
                   <td class="px-3 py-2 text-sm border-r border-minecraft-stone/40" :class="{'text-minecraft-important-red': !app.isReviewed, 'text-white': app.isReviewed}">
-                    <div class="tooltip-container">
+                    <div class="tooltip-container" :data-tooltip="app.favoriteAboutMinecraft">
                       <div class="truncate">{{ app.favoriteAboutMinecraft }}</div>
-                      <div class="tooltip">{{ app.favoriteAboutMinecraft }}</div>
                     </div>
                   </td>
                   
                   <td class="px-3 py-2 text-sm border-r border-minecraft-stone/40" :class="{'text-minecraft-important-red': !app.isReviewed, 'text-white': app.isReviewed}">
-                    <div class="tooltip-container">
+                    <div class="tooltip-container" :data-tooltip="app.understandingOfSMP">
                       <div class="truncate">{{ app.understandingOfSMP }}</div>
-                      <div class="tooltip">{{ app.understandingOfSMP }}</div>
                     </div>
                   </td>
                   
@@ -146,9 +147,8 @@
                   </td>
                   
                   <td class="px-3 py-2 text-sm border-r border-minecraft-stone/40" :class="{'text-minecraft-important-red': !app.isReviewed, 'text-white': app.isReviewed}">
-                    <div class="tooltip-container">
+                    <div class="tooltip-container" :data-tooltip="formatDate(app.submissionDate, true)">
                       <div class="truncate">{{ formatDate(app.submissionDate) }}</div>
-                      <div class="tooltip">{{ formatDate(app.submissionDate, true) }}</div>
                     </div>
                     <div v-if="app.isReviewed" class="text-xs mt-1 text-green-500">
                       Reviewed: {{ formatDate(app.reviewedAt) }}
@@ -504,8 +504,9 @@ async function authenticate() {
               });
             }
             
-            // Load data
+            // Load data and set up tooltips
             refreshData();
+            setupTooltipListeners();
           });
         }
       });
@@ -555,6 +556,13 @@ async function submitReview() {
   isProcessing.value = selectedApplication.value.id;
   
   try {
+    // Ensure acceptanceStatus is properly set
+    if (!acceptanceStatus.value) {
+      acceptanceStatus.value = 'pending';
+    }
+    
+    console.log('Submitting review with status:', acceptanceStatus.value);
+    
     const response = await api.reviewApplication(
       selectedApplication.value.id,
       authenticatedPassword.value,
@@ -574,6 +582,7 @@ async function submitReview() {
       errorMessage.value = 'Failed to review application. Please try again.';
     }
   } catch (error) {
+    console.error('Error submitting review:', error);
     errorMessage.value = 'Failed to review application. Please try again.';
   } finally {
     isSubmittingReview.value = false;
@@ -650,7 +659,149 @@ async function deleteApplication(applicationId) {
   }
 }
 
-// Fetch applications
+// Global tooltip element
+let globalTooltip = null;
+
+// Function to initialize global tooltip
+function initializeGlobalTooltip() {
+  // Remove any existing tooltip first
+  const existingTooltip = document.getElementById('global-tooltip');
+  if (existingTooltip) {
+    existingTooltip.remove();
+  }
+  
+  // Create the tooltip element
+  globalTooltip = document.createElement('div');
+  globalTooltip.id = 'global-tooltip';
+  globalTooltip.style.position = 'fixed';
+  globalTooltip.style.backgroundColor = 'rgba(0, 0, 0, 0.95)';
+  globalTooltip.style.color = 'white';
+  globalTooltip.style.padding = '0.5rem 0.75rem';
+  globalTooltip.style.borderRadius = '0.25rem';
+  globalTooltip.style.border = '1px solid #888';
+  globalTooltip.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.1)';
+  globalTooltip.style.zIndex = '99999';
+  globalTooltip.style.maxWidth = '300px';
+  globalTooltip.style.fontSize = '0.875rem';
+  globalTooltip.style.lineHeight = '1.4';
+  globalTooltip.style.wordBreak = 'break-word';
+  globalTooltip.style.pointerEvents = 'none';
+  globalTooltip.style.opacity = '0';
+  globalTooltip.style.visibility = 'hidden';
+  globalTooltip.style.transition = 'opacity 0.15s ease';
+  
+  // Append to root element or body
+  const tooltipRoot = document.getElementById('tooltip-root');
+  if (tooltipRoot) {
+    tooltipRoot.appendChild(globalTooltip);
+  } else {
+    document.body.appendChild(globalTooltip);
+  }
+}
+
+// Function to show tooltip
+function showTooltip(event) {
+  if (!globalTooltip) return;
+  
+  // Get tooltip text from data attribute
+  const tooltipText = event.currentTarget.getAttribute('data-tooltip');
+  
+  if (!tooltipText || tooltipText.trim() === '') return;
+  
+  // Set content
+  globalTooltip.textContent = tooltipText;
+  
+  // Position tooltip first to get correct dimensions
+  positionTooltip(event);
+  
+  // Make visible
+  globalTooltip.style.visibility = 'visible';
+  globalTooltip.style.opacity = '1';
+}
+
+// Function to hide tooltip
+function hideTooltip() {
+  if (!globalTooltip) return;
+  
+  globalTooltip.style.opacity = '0';
+  globalTooltip.style.visibility = 'hidden';
+}
+
+// Function to position tooltip
+function positionTooltip(event) {
+  if (!globalTooltip) return;
+  
+  const rect = event.currentTarget.getBoundingClientRect();
+  const tooltipHeight = globalTooltip.offsetHeight;
+  const tooltipWidth = globalTooltip.offsetWidth;
+  
+  // Default position - above element
+  let top = rect.top - tooltipHeight - 8;
+  
+  // If not enough room above, position below
+  if (top < 8) {
+    top = rect.bottom + 8;
+  }
+  
+  // Center horizontally
+  let left = rect.left + (rect.width / 2) - (tooltipWidth / 2);
+  
+  // Keep tooltip within viewport
+  left = Math.max(8, Math.min(left, window.innerWidth - tooltipWidth - 8));
+  
+  // Position the tooltip - note we're using fixed positioning so no need to add scrollY
+  globalTooltip.style.top = `${top}px`;
+  globalTooltip.style.left = `${left}px`;
+}
+
+// Setup tooltip listeners
+function setupTooltipListeners() {
+  // Initialize the global tooltip
+  nextTick(() => {
+    initializeGlobalTooltip();
+    
+    // Find all tooltip containers
+    const tooltipContainers = document.querySelectorAll('.tooltip-container');
+    
+    // Remove existing content and add data attributes
+    tooltipContainers.forEach(container => {
+      const tooltipElement = container.querySelector('.tooltip');
+      if (tooltipElement) {
+        // Store tooltip content as data attribute
+        container.setAttribute('data-tooltip', tooltipElement.textContent);
+        // Remove the tooltip element
+        tooltipElement.remove();
+      }
+      
+      // Remove existing event listeners
+      container.removeEventListener('mouseenter', showTooltip);
+      container.removeEventListener('mouseleave', hideTooltip);
+      container.removeEventListener('mousemove', positionTooltip);
+      
+      // Add new event listeners
+      container.addEventListener('mouseenter', showTooltip);
+      container.addEventListener('mouseleave', hideTooltip);
+      container.addEventListener('mousemove', positionTooltip);
+    });
+    
+    // Add scroll listener to hide tooltip when scrolling
+    const tableContainer = document.querySelector('.overflow-auto');
+    if (tableContainer) {
+      tableContainer.removeEventListener('scroll', hideTooltip);
+      tableContainer.addEventListener('scroll', hideTooltip);
+    }
+  });
+}
+
+// Update refreshData to hide tooltips
+function hideAllTooltips() {
+  if (globalTooltip) {
+    globalTooltip.style.opacity = '0';
+    globalTooltip.style.visibility = 'hidden';
+  }
+}
+
+// Update refreshData to set up tooltip listeners after data changes
 async function refreshData() {
   isLoading.value = true;
   errorMessage.value = '';
@@ -660,10 +811,10 @@ async function refreshData() {
     
     if (response.success) {
       const oldLength = applications.value.length;
-      // Sort applications in reverse order by ID
-      applications.value = response.data.sort((a, b) => b.id - a.id);
+      // Sort applications in reverse order by ID, handle null response
+      applications.value = (response.data || []).sort((a, b) => b.id - a.id);
       
-      if (oldLength === 0 && response.data.length > 0) {
+      if (oldLength === 0 && applications.value.length > 0) {
         nextTick(() => {
           gsap.from('table', {
             opacity: 0,
@@ -687,12 +838,15 @@ async function refreshData() {
               container.scrollTo({ top: 0, behavior: 'smooth' });
             }
           }, 500);
+          
+          // Set up tooltip listeners after data is rendered
+          setupTooltipListeners();
         });
-      } else if (response.data.length > oldLength) {
+      } else if (applications.value.length > oldLength) {
         // New entries, animate only the new ones
         nextTick(() => {
           const rows = document.querySelectorAll('.application-row');
-          for (let i = 0; i < response.data.length - oldLength; i++) {
+          for (let i = 0; i < applications.value.length - oldLength; i++) {
             gsap.from(rows[i], {
               opacity: 0,
               y: 15,
@@ -709,7 +863,13 @@ async function refreshData() {
               container.scrollTo({ top: 0, behavior: 'smooth' });
             }
           }, 500);
+          
+          // Set up tooltip listeners after data is rendered
+          setupTooltipListeners();
         });
+      } else {
+        // Just refresh tooltip listeners if data changed but no animations
+        setupTooltipListeners();
       }
     } else {
       errorMessage.value = 'Failed to load applications. Please try again.';
@@ -761,12 +921,15 @@ function logout() {
   });
 }
 
-// Setup on component mount
+// Add to mounted hook to set up event listeners
 onMounted(() => {
   // Focus password input when mounted
   if (passwordInput.value) {
     passwordInput.value.focus();
   }
+  
+  // Set up tooltip event listeners
+  setupTooltipListeners();
 });
 
 // Format date for display
@@ -799,57 +962,6 @@ async function copyToClipboard(text) {
   }
 }
 
-// Add this new function after the existing functions
-function updateTooltipPosition(event) {
-  const tooltip = event.currentTarget.querySelector('.tooltip');
-  if (tooltip) {
-    const rect = event.currentTarget.getBoundingClientRect();
-    const tooltipHeight = tooltip.offsetHeight;
-    const tooltipWidth = tooltip.offsetWidth;
-    
-    // Position tooltip above or below based on available space
-    let top = rect.bottom + window.scrollY + 5;
-    
-    // If tooltip would go off bottom of viewport, show it above instead
-    if (top + tooltipHeight > window.innerHeight) {
-      top = rect.top + window.scrollY - tooltipHeight - 5;
-    }
-    
-    // Center horizontally relative to the container
-    let left = rect.left + (rect.width / 2) - (tooltipWidth / 2);
-    
-    // Ensure tooltip doesn't go off screen horizontally
-    left = Math.max(10, Math.min(left, window.innerWidth - tooltipWidth - 10));
-    
-    tooltip.style.top = `${top}px`;
-    tooltip.style.left = `${left}px`;
-  }
-}
-
-// Add mounted hook to set up event listeners
-onMounted(() => {
-  // ... existing mounted code ...
-  
-  // Add event listeners for tooltip positioning
-  const tooltipContainers = document.querySelectorAll('.tooltip-container');
-  tooltipContainers.forEach(container => {
-    container.addEventListener('mouseenter', updateTooltipPosition);
-    container.addEventListener('mousemove', updateTooltipPosition);
-  });
-});
-
-// Add cleanup in onUnmounted
-onUnmounted(() => {
-  // ... existing unmounted code ...
-  
-  // Remove tooltip event listeners
-  const tooltipContainers = document.querySelectorAll('.tooltip-container');
-  tooltipContainers.forEach(container => {
-    container.removeEventListener('mouseenter', updateTooltipPosition);
-    container.removeEventListener('mousemove', updateTooltipPosition);
-  });
-});
-
 const handleLogout = async () => {
   const confirmed = await confirmation.confirm({
     title: 'Logout',
@@ -877,16 +989,7 @@ const handleExport = async () => {
 };
 
 const handleRefresh = async () => {
-  const confirmed = await confirmation.confirm({
-    title: 'Refresh Data',
-    message: 'This will refresh all application data. Continue?',
-    confirmText: 'Refresh',
-    cancelText: 'Cancel'
-  });
-  
-  if (confirmed) {
-    refreshData();
-  }
+  refreshData();
 };
 </script>
 
@@ -915,30 +1018,10 @@ const handleRefresh = async () => {
   }
 }
 
+/* New tooltip implementation */
 .tooltip-container {
   position: relative;
   cursor: default;
-}
-
-.tooltip {
-  display: none;
-  position: fixed;  /* Changed from absolute to fixed for better positioning */
-  background-color: rgba(0, 0, 0, 0.9);
-  border: 1px solid #555;
-  color: white;
-  padding: 0.5rem;
-  border-radius: 0.25rem;
-  z-index: 9999;  /* Increased z-index to ensure it's above all other elements */
-  white-space: normal;
-  max-width: 300px;
-  font-size: 0.75rem;
-  margin-top: 0.25rem;
-  pointer-events: none;  /* Prevents tooltip from interfering with other interactions */
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);  /* Added shadow for better visibility */
-}
-
-.tooltip-container:hover .tooltip {
-  display: block;
 }
 
 .review-star {

@@ -108,7 +108,11 @@ func (h *ApplicationHandler) GetApplications(w http.ResponseWriter, r *http.Requ
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(applications)
+	response := map[string]interface{}{
+		"success": true,
+		"data":    applications,
+	}
+	json.NewEncoder(w).Encode(response)
 }
 
 // ExportApplications handles exporting applications to CSV (admin only)

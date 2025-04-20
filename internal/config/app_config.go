@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+
+	"gopkg.in/yaml.v3"
 )
 
 // Config holds all application configuration
@@ -37,16 +39,20 @@ func DefaultConfig() *Config {
 
 // LoadConfig loads the configuration from a YAML file
 func LoadConfig(configPath string) (*Config, error) {
-	// For now, we'll just return the default config
-	// In a real application, you would load from a YAML file
-	// using a library like github.com/spf13/viper
-
 	cfg := DefaultConfig()
 
 	// If config file exists, load it
 	if _, err := os.Stat(configPath); err == nil {
-		// TODO: Implement YAML loading
-		fmt.Printf("Config file found at %s, but YAML loading not implemented yet\n", configPath)
+		// Read the config file
+		data, err := os.ReadFile(configPath)
+		if err != nil {
+			return nil, fmt.Errorf("error reading config file: %w", err)
+		}
+
+		// Parse YAML into config struct
+		if err := yaml.Unmarshal(data, cfg); err != nil {
+			return nil, fmt.Errorf("error parsing config file: %w", err)
+		}
 	}
 
 	return cfg, nil
