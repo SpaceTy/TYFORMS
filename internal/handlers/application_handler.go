@@ -224,6 +224,48 @@ func (h *ApplicationHandler) ReviewApplication(w http.ResponseWriter, r *http.Re
 	json.NewEncoder(w).Encode(app)
 }
 
+// UnreviewApplication handles unreviewing an application (admin only)
+func (h *ApplicationHandler) UnreviewApplication(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var request struct {
+		Password string `json:"password"`
+		ID       int    `json:"id"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if request.Password != h.adminPassword {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	app, err := h.store.GetApplication(request.ID)
+	if err != nil {
+		http.Error(w, "Application not found", http.StatusNotFound)
+		return
+	}
+
+	app.IsReviewed = false
+	app.ReviewedAt = nil
+	app.ReviewNotes = nil
+	app.AcceptanceStatus = "pending"
+
+	if err := h.store.UpdateApplication(app); err != nil {
+		http.Error(w, "Error updating application", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(app)
+}
+
 // DeleteApplication handles deleting an application (admin only)
 func (h *ApplicationHandler) DeleteApplication(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
@@ -252,6 +294,31 @@ func (h *ApplicationHandler) DeleteApplication(w http.ResponseWriter, r *http.Re
 	}
 
 	w.WriteHeader(http.StatusOK)
+}
+
+// VerifyPassword handles password verification requests
+func (h *ApplicationHandler) VerifyPassword(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var auth struct {
+		Password string `json:"password"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&auth); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	response := struct {
+		Success bool `json:"success"`
+	}{
+		Success: auth.Password == h.adminPassword,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
 }
 
 // Helper functions

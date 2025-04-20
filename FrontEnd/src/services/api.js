@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: '',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -14,7 +14,7 @@ export default {
         ...applicationData,
         age: Number(applicationData.age)
       };
-      const response = await api.post('/application', data);
+      const response = await api.post('/api/application', data);
       return response.data;
     } catch (error) {
       console.error('Error submitting application:', error);
@@ -24,7 +24,7 @@ export default {
   
   async verifyAdminPassword(password) {
     try {
-      const response = await api.post('/auth/verify', { password });
+      const response = await api.post('/api/auth/verify', { password });
       return response.data;
     } catch (error) {
       console.error('Error verifying password:', error);
@@ -34,7 +34,7 @@ export default {
   
   async getApplications(adminPassword) {
     try {
-      const response = await api.post('/application/list', { password: adminPassword });
+      const response = await api.post('/api/application/list', { password: adminPassword });
       return response.data;
     } catch (error) {
       console.error('Error fetching applications:', error);
@@ -44,7 +44,7 @@ export default {
   
   async exportApplications(adminPassword) {
     try {
-      const response = await api.post('/application/export', 
+      const response = await api.post('/api/application/export', 
         { password: adminPassword },
         { responseType: 'blob' }
       );
@@ -65,42 +65,42 @@ export default {
   
   async deleteApplication(applicationId, adminPassword) {
     try {
-      const response = await api.post('/application/delete', { 
+      const response = await api.post('/api/application/delete', { 
         id: applicationId,
         password: adminPassword 
       });
-      return response.data;
+      return { success: true, data: response.data };
     } catch (error) {
       console.error('Error deleting application:', error);
-      throw error;
+      return { success: false, error };
     }
   },
   
   async reviewApplication(applicationId, adminPassword, notes = '', acceptanceStatus = 'pending') {
     try {
-      const response = await api.post('/application/review', {
+      const response = await api.post('/api/application/review', {
         id: applicationId,
         password: adminPassword,
         notes: notes,
         acceptanceStatus: acceptanceStatus
       });
-      return response.data;
+      return { success: true, data: response.data };
     } catch (error) {
       console.error('Error reviewing application:', error);
-      throw error;
+      return { success: false, error };
     }
   },
   
   async unreviewApplication(applicationId, adminPassword) {
     try {
-      const response = await api.post('/application/unreview', {
+      const response = await api.post('/api/application/unreview', {
         id: applicationId,
         password: adminPassword
       });
-      return response.data;
+      return { success: true, data: response.data };
     } catch (error) {
       console.error('Error unreview application:', error);
-      throw error;
+      return { success: false, error };
     }
   }
 }; 

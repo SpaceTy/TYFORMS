@@ -468,7 +468,7 @@ async function unreviewApplication(applicationId) {
     if (response.success) {
       const index = applications.value.findIndex(app => app.id === applicationId);
       if (index !== -1) {
-        applications.value[index] = response.application;
+        applications.value[index] = response.data;
         
         nextTick(() => {
           const cards = document.querySelectorAll('.application-card');

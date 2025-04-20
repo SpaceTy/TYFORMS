@@ -559,24 +559,15 @@ async function submitReview() {
     );
     
     if (response.success) {
-      // Update the application in the list
-      const index = applications.value.findIndex(app => app.id === selectedApplication.value.id);
-      if (index !== -1) {
-        applications.value[index] = response.application;
-        
-        // Add animation to the updated row
-        nextTick(() => {
-          const rows = document.querySelectorAll('.application-row');
-          if (rows[index]) {
-            gsap.fromTo(rows[index], 
-              { backgroundColor: 'rgba(50, 205, 50, 0.3)' },  // Green for "reviewed" transition
-              { backgroundColor: '', duration: 1.5, ease: 'power2.out' }
-            );
-          }
-        });
-      }
-      
       showReviewModal.value = false;
+      // Clear the selected application and review data
+      selectedApplication.value = null;
+      reviewNotes.value = '';
+      acceptanceStatus.value = 'pending';
+      // Refresh the data
+      await refreshData();
+    } else {
+      errorMessage.value = 'Failed to review application. Please try again.';
     }
   } catch (error) {
     errorMessage.value = 'Failed to review application. Please try again.';
@@ -604,22 +595,9 @@ async function unreviewApplication(applicationId) {
     );
     
     if (response.success) {
-      // Update the application in the list
-      const index = applications.value.findIndex(app => app.id === applicationId);
-      if (index !== -1) {
-        applications.value[index] = response.application;
-        
-        // Add animation to the updated row - now highlighting with red since unreviewed
-        nextTick(() => {
-          const rows = document.querySelectorAll('.application-row');
-          if (rows[index]) {
-            gsap.fromTo(rows[index], 
-              { backgroundColor: 'rgba(255, 82, 82, 0.3)' },  // Red for "unreviewed" transition
-              { backgroundColor: '', duration: 1, ease: 'power2.out' }
-            );
-          }
-        });
-      }
+      await refreshData();
+    } else {
+      errorMessage.value = 'Failed to unreview application. Please try again.';
     }
   } catch (error) {
     errorMessage.value = 'Failed to unreview application. Please try again.';
@@ -643,26 +621,9 @@ async function deleteApplication(applicationId) {
     const response = await api.deleteApplication(applicationId, authenticatedPassword.value);
     
     if (response.success) {
-      // Remove the deleted application from the list with animation
-      const index = applications.value.findIndex(app => app.id === applicationId);
-      if (index !== -1) {
-        // Animate the row before removing it
-        const rows = document.querySelectorAll('.application-row');
-        if (rows[index]) {
-          gsap.to(rows[index], {
-            opacity: 0,
-            height: 0,
-            paddingTop: 0,
-            paddingBottom: 0,
-            duration: 0.3,
-            onComplete: () => {
-              applications.value = applications.value.filter(app => app.id !== applicationId);
-            }
-          });
-        } else {
-          applications.value = applications.value.filter(app => app.id !== applicationId);
-        }
-      }
+      await refreshData();
+    } else {
+      errorMessage.value = 'Failed to delete application. Please try again.';
     }
   } catch (error) {
     errorMessage.value = 'Failed to delete application. Please try again.';
@@ -677,59 +638,63 @@ async function refreshData() {
   errorMessage.value = '';
   
   try {
-    const data = await api.getApplications(authenticatedPassword.value);
+    const response = await api.getApplications(authenticatedPassword.value);
     
-    const oldLength = applications.value.length;
-    // Sort applications in reverse order by ID
-    applications.value = data.sort((a, b) => b.id - a.id);
-    
-    if (oldLength === 0 && data.length > 0) {
-      nextTick(() => {
-        gsap.from('table', {
-          opacity: 0,
-          y: 20,
-          duration: 0.5,
-          ease: 'power2.out'
-        });
-        
-        gsap.from('.application-row', {
-          opacity: 0,
-          y: 15,
-          stagger: 0.05,
-          duration: 0.4,
-          ease: 'power2.out'
-        });
-
-        // Scroll to top after animation
-        setTimeout(() => {
-          const container = document.querySelector('.overflow-auto');
-          if (container) {
-            container.scrollTo({ top: 0, behavior: 'smooth' });
-          }
-        }, 500);
-      });
-    } else if (data.length > oldLength) {
-      // New entries, animate only the new ones
-      nextTick(() => {
-        const rows = document.querySelectorAll('.application-row');
-        for (let i = 0; i < data.length - oldLength; i++) {
-          gsap.from(rows[i], {
+    if (response.success) {
+      const oldLength = applications.value.length;
+      // Sort applications in reverse order by ID
+      applications.value = response.data.sort((a, b) => b.id - a.id);
+      
+      if (oldLength === 0 && response.data.length > 0) {
+        nextTick(() => {
+          gsap.from('table', {
+            opacity: 0,
+            y: 20,
+            duration: 0.5,
+            ease: 'power2.out'
+          });
+          
+          gsap.from('.application-row', {
             opacity: 0,
             y: 15,
+            stagger: 0.05,
             duration: 0.4,
-            ease: 'power2.out',
-            delay: i * 0.05
+            ease: 'power2.out'
           });
-        }
 
-        // Scroll to top after animation
-        setTimeout(() => {
-          const container = document.querySelector('.overflow-auto');
-          if (container) {
-            container.scrollTo({ top: 0, behavior: 'smooth' });
+          // Scroll to top after animation
+          setTimeout(() => {
+            const container = document.querySelector('.overflow-auto');
+            if (container) {
+              container.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+          }, 500);
+        });
+      } else if (response.data.length > oldLength) {
+        // New entries, animate only the new ones
+        nextTick(() => {
+          const rows = document.querySelectorAll('.application-row');
+          for (let i = 0; i < response.data.length - oldLength; i++) {
+            gsap.from(rows[i], {
+              opacity: 0,
+              y: 15,
+              duration: 0.4,
+              ease: 'power2.out',
+              delay: i * 0.05
+            });
           }
-        }, 500);
-      });
+
+          // Scroll to top after animation
+          setTimeout(() => {
+            const container = document.querySelector('.overflow-auto');
+            if (container) {
+              container.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+          }, 500);
+        });
+      }
+    } else {
+      errorMessage.value = 'Failed to load applications. Please try again.';
     }
   } catch (error) {
     errorMessage.value = 'Failed to load applications. Please try again.';
