@@ -1,0 +1,8 @@
+database:
+  path: "applications.db"
+
+server:
+  port: 5099
+
+admin:
+  password: "admin123" 
