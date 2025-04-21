@@ -1,0 +1,13 @@
+apply.spacety.dev {
+    # Reverse proxy to your Go application
+    reverse_proxy localhost:5099
+
+    # Serve static files directly
+    root * wwwroot
+    file_server
+
+    # Enable automatic HTTPS
+    tls {
+        protocols tls1.2 tls1.3
+    }
+} 
