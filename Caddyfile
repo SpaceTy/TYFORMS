@@ -10,4 +10,4 @@ apply.spacety.dev {
     tls {
         protocols tls1.2 tls1.3
     }
-} 
+}
