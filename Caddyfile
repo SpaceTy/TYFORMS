@@ -1,11 +1,15 @@
 apply.spacety.dev {
-    # Reverse proxy to your Go application
-    reverse_proxy /api/* localhost:5099
+    # Handle API routes
+    handle /api/* {
+        reverse_proxy localhost:5099
+    }
 
-    # Serve static files and handle SPA routing
-    root * wwwroot
-    file_server
-    try_files {path} /index.html
+    # Handle static files and SPA routing
+    handle {
+        root * wwwroot
+        file_server
+        try_files {path} /index.html
+    }
 
     # Enable automatic HTTPS
     tls {
