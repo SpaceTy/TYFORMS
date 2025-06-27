@@ -37,7 +37,7 @@
     <div v-else class="absolute inset-0 p-4">
       <div ref="adminContainerRef" class="admin-panel mc-panel w-full h-full flex flex-col">
         <!-- Fixed top bar -->
-        <div class="flex justify-between items-center px-6 py-4 bg-minecraft-deepslate/80 rounded-t-md sticky top-0 z-20">
+        <div class="flex justify-between items-center px-6 py-4 bg-minecraft-deepslate/90 rounded-t-md sticky top-0 z-20">
           <h2 class="mc-title mb-0">Applications Dashboard</h2>
           
           <div class="flex gap-2">
@@ -61,7 +61,7 @@
         </div>
         
         <!-- Scrollable content area -->
-        <div class="flex-grow overflow-hidden flex flex-col p-6 bg-black/40">
+        <div class="flex-grow overflow-hidden flex flex-col p-6 bg-black/60">
           <div v-if="applications.length === 0 && !isLoading" class="text-center py-10 text-white flex-grow flex items-center justify-center">
             <div>
               <p class="text-xl font-minecraft">No applications yet</p>
@@ -70,9 +70,9 @@
           </div>
           
           <div v-else class="overflow-auto flex-grow">
-            <table class="w-full table-fixed bg-black/50 border border-minecraft-stone rounded-md">
+            <table class="w-full table-fixed bg-black/70 border border-minecraft-stone rounded-md">
               <thead class="sticky top-0 z-10">
-                <tr class="bg-minecraft-deepslate">
+                <tr class="bg-minecraft-deepslate/90">
                   <th class="w-20 px-3 py-3 text-left text-sm font-minecraft text-white whitespace-nowrap border-r border-minecraft-stone">#</th>
                   <th class="w-32 px-3 py-3 text-left text-sm font-minecraft text-white whitespace-nowrap border-r border-minecraft-stone">DC</th>
                   <th class="w-32 px-3 py-3 text-left text-sm font-minecraft text-white whitespace-nowrap border-r border-minecraft-stone">MC</th>
@@ -172,7 +172,7 @@
                     <div class="flex flex-col gap-2">
                       <button 
                         v-if="!app.isReviewed"
-                        @click="openReviewModal(app)"
+                        @click="openEditModal(app)"
                         class="mc-button text-xs bg-green-600 hover:bg-green-700 border-green-800 px-2 py-1 review-btn animate-pulse"
                         :disabled="isProcessing === app.id"
                       >
@@ -216,114 +216,19 @@
       </div>
     </div>
     
-    <!-- Review Modal -->
-    <div v-if="showReviewModal" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
-      <div class="mc-container max-w-lg w-full animate-scale-in">
-        <div class="flex justify-between items-center mb-4">
-          <h3 class="mc-title text-lg">Review Application</h3>
-          <button @click="showReviewModal = false" class="text-white hover:text-red-500 transition">✕</button>
+    <!-- Edit Modal -->
+    <Teleport to="body">
+      <Transition name="fade" mode="out-in">
+        <div v-if="showEditModal">
+          <AdminEditModal
+            :show="showEditModal"
+            :application="selectedApplication"
+            @close="closeEditModal"
+            @save="handleSaveChanges"
+          />
         </div>
-        
-        <div v-if="selectedApplication" class="mb-4">
-          <!-- Player Info Panel -->
-          <div class="bg-minecraft-deepslate/40 rounded-md p-4 mb-4 border border-minecraft-stone/50">
-            <p class="text-white">
-              <span class="font-minecraft">Player:</span> 
-              {{ selectedApplication.minecraftUsername }} 
-              <span class="text-gray-400">({{ selectedApplication.discordUsername }})</span>
-            </p>
-          </div>
-
-          <div class="flex gap-2">
-            <!-- Notes Panel -->
-            <div class="flex-grow bg-minecraft-deepslate/40 rounded-md p-4 border border-minecraft-stone/50">
-              <label class="mc-label block mb-2">Review Notes</label>
-              <textarea 
-                v-model="reviewNotes" 
-                class="mc-input w-full bg-black/30" 
-                rows="4"
-                placeholder="Enter notes about this application (optional)"
-              ></textarea>
-            </div>
-
-            <!-- Status Panel -->
-            <div class="w-16 bg-minecraft-deepslate/40 rounded-md px-2 py-4 border border-minecraft-stone/50 flex flex-col items-center">
-              <div class="relative h-40 w-full flex items-center justify-center">
-                <!-- Slider Track Container -->
-                <div class="relative h-full w-2 flex items-center justify-center">
-                  <!-- Gradient Track -->
-                  <div class="w-2 h-full rounded-full relative overflow-hidden">
-                    <div class="absolute inset-0 bg-gradient-to-b from-green-500 via-yellow-500 to-red-500"></div>
-                    <!-- Track Markers -->
-                    <div class="absolute inset-x-[-4px] top-0 h-[2px] bg-white/20"></div>
-                    <div class="absolute inset-x-[-4px] top-1/2 h-[2px] bg-white/20 -translate-y-px"></div>
-                    <div class="absolute inset-x-[-4px] bottom-0 h-[2px] bg-white/20"></div>
-                  </div>
-
-                  <!-- Click Areas -->
-                  <div class="absolute inset-x-[-12px] h-1/3 top-0 cursor-pointer" @click="setAcceptanceStatus('accepted')"></div>
-                  <div class="absolute inset-x-[-12px] h-1/3 top-1/3 cursor-pointer" @click="setAcceptanceStatus('pending')"></div>
-                  <div class="absolute inset-x-[-12px] h-1/3 top-2/3 cursor-pointer" @click="setAcceptanceStatus('rejected')"></div>
-
-                  <!-- Slider Handle -->
-                  <div 
-                    ref="sliderHandle"
-                    class="absolute w-7 h-7 left-[-12px] rounded-full shadow-lg cursor-grab active:cursor-grabbing will-change-transform flex items-center justify-center"
-                    :class="{
-                      'bg-green-600 border-green-400 shadow-green-500/30': acceptanceStatus === 'accepted',
-                      'bg-yellow-600 border-yellow-400 shadow-yellow-500/30': acceptanceStatus === 'pending',
-                      'bg-red-600 border-red-400 shadow-red-500/30': acceptanceStatus === 'rejected'
-                    }"
-                    :style="{
-                      top: acceptanceStatus === 'accepted' ? '0%' : 
-                           acceptanceStatus === 'pending' ? 'calc(50% - 14px)' : 'calc(100% - 28px)',
-                      borderWidth: '2px',
-                      transform: `scale(${isDragging ? 1.1 : 1})`,
-                      transition: 'transform 0.15s ease-out, background-color 0.2s ease-out, border-color 0.2s ease-out'
-                    }"
-                    @mousedown="startDragging"
-                  >
-                    <!-- Handle Content -->
-                    <span class="text-white text-sm font-minecraft leading-none select-none">
-                      {{ acceptanceStatus === 'accepted' ? '✓' : 
-                         acceptanceStatus === 'pending' ? '?' : '✕' }}
-                    </span>
-
-                    <!-- Tooltip -->
-                    <div 
-                      class="absolute left-full ml-2 whitespace-nowrap px-2 py-1 bg-black/90 text-white text-xs rounded pointer-events-none transform origin-left transition-all duration-200 border border-white/10"
-                      :class="{
-                        'opacity-0 scale-95 translate-x-2': isDragging,
-                        'opacity-100 scale-100 translate-x-0': !isDragging
-                      }"
-                      :style="{ zIndex: 50 }"
-                    >
-                      {{ acceptanceStatus === 'accepted' ? 'Accept Application' : 
-                         acceptanceStatus === 'pending' ? 'Pending Decision' : 'Reject Application' }}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        <!-- Action Buttons Panel -->
-        <div class="flex justify-center gap-2 bg-minecraft-deepslate/40 rounded-md p-4 border border-minecraft-stone/50 mt-2">
-          <button @click="showReviewModal = false" class="mc-button bg-gray-600 hover:bg-gray-700 border-gray-800">
-            Cancel
-          </button>
-          <button 
-            @click="submitReview"
-            class="mc-button bg-green-600 hover:bg-green-700 border-green-800"
-            :disabled="isSubmittingReview"
-          >
-            <span v-if="isSubmittingReview">Submitting...</span>
-            <span v-else>Submit Review</span>
-          </button>
-        </div>
-      </div>
-    </div>
+      </Transition>
+    </Teleport>
     
     <!-- Notes Modal -->
     <div v-if="showNotesModal" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
@@ -363,6 +268,7 @@ import { ref, onMounted, onUnmounted, nextTick, inject } from 'vue';
 import { gsap } from 'gsap';
 import api from '../services/api';
 import { useRouter } from 'vue-router';
+import AdminEditModal from '../components/AdminEditModal.vue';
 
 const router = useRouter();
 const confirmation = inject('confirmation');
@@ -382,11 +288,9 @@ const adminContainerRef = ref(null);
 const isDeleting = ref(null); // Track which row is being deleted
 const isProcessing = ref(null); // Track which application is being processed (review/unreview)
 
-// Review modal state
-const showReviewModal = ref(false);
+// Edit modal state
+const showEditModal = ref(false);
 const selectedApplication = ref(null);
-const reviewNotes = ref('');
-const acceptanceStatus = ref('pending'); // Default to pending
 const isSubmittingReview = ref(false);
 
 // Notes modal state
@@ -533,13 +437,10 @@ function getAgeColor(age) {
   return 'text-white';
 }
 
-// Open review modal
-function openReviewModal(application) {
+// Open edit modal
+function openEditModal(application) {
   selectedApplication.value = application;
-  reviewNotes.value = '';
-  // Set initial acceptance status from existing data or default to pending
-  acceptanceStatus.value = application.acceptanceStatus || 'pending';
-  showReviewModal.value = true;
+  showEditModal.value = true;
 }
 
 // Show notes modal
@@ -548,45 +449,18 @@ function showNotes(application) {
   showNotesModal.value = true;
 }
 
-// Submit review
-async function submitReview() {
-  if (!selectedApplication.value) return;
-  
+// Handle save changes
+async function handleSaveChanges(updatedApplication) {
   isSubmittingReview.value = true;
-  isProcessing.value = selectedApplication.value.id;
-  
   try {
-    // Ensure acceptanceStatus is properly set
-    if (!acceptanceStatus.value) {
-      acceptanceStatus.value = 'pending';
-    }
-    
-    console.log('Submitting review with status:', acceptanceStatus.value);
-    
-    const response = await api.reviewApplication(
-      selectedApplication.value.id,
-      authenticatedPassword.value,
-      reviewNotes.value,
-      acceptanceStatus.value
-    );
-    
-    if (response.success) {
-      showReviewModal.value = false;
-      // Clear the selected application and review data
-      selectedApplication.value = null;
-      reviewNotes.value = '';
-      acceptanceStatus.value = 'pending';
-      // Refresh the data
-      await refreshData();
-    } else {
-      errorMessage.value = 'Failed to review application. Please try again.';
-    }
+    await api.updateApplication(updatedApplication.id, updatedApplication);
+    await refreshData();
+    showEditModal.value = false;
   } catch (error) {
-    console.error('Error submitting review:', error);
-    errorMessage.value = 'Failed to review application. Please try again.';
+    console.error('Error updating application:', error);
+    errorMessage.value = 'Failed to update application. Please try again.';
   } finally {
     isSubmittingReview.value = false;
-    isProcessing.value = null;
   }
 }
 
@@ -991,6 +865,11 @@ const handleExport = async () => {
 const handleRefresh = async () => {
   refreshData();
 };
+
+function closeEditModal() {
+  showEditModal.value = false;
+  selectedApplication.value = null;
+}
 </script>
 
 <style scoped>

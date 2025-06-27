@@ -31,169 +31,167 @@
     </div>
     
     <!-- Admin Dashboard -->
-    <div v-else class="absolute inset-0 p-2">
-      <div ref="adminContainerRef" class="admin-panel mc-panel w-full h-full flex flex-col">
-        <!-- Header -->
-        <div class="flex flex-col gap-2 px-4 py-3 bg-minecraft-deepslate/80 rounded-t-md">
-          <h2 class="mc-title mb-0">Applications Dashboard</h2>
+    <div v-else class="absolute inset-0 flex flex-col">
+      <!-- Fixed top bar -->
+      <div class="flex justify-between items-center px-4 py-3 bg-minecraft-deepslate/90 sticky top-0 z-20">
+        <h2 class="mc-title mb-0">Applications Dashboard</h2>
+        
+        <div class="flex flex-wrap gap-2">
+          <button @click="refreshData" class="mc-button text-sm flex-1">
+            <span v-if="isLoading">Loading...</span>
+            <span v-else>Refresh</span>
+          </button>
           
-          <div class="flex flex-wrap gap-2">
-            <button @click="refreshData" class="mc-button text-sm flex-1">
-              <span v-if="isLoading">Loading...</span>
-              <span v-else>Refresh</span>
-            </button>
-            
-            <button @click="exportToCsv" class="mc-button text-sm flex-1">
-              Export CSV
-            </button>
-            
-            <button @click="logout" class="mc-button text-sm bg-red-500 hover:bg-red-600 border-red-700 flex-1">
-              Logout
-            </button>
+          <button @click="exportToCsv" class="mc-button text-sm flex-1">
+            Export CSV
+          </button>
+          
+          <button @click="logout" class="mc-button text-sm bg-red-500 hover:bg-red-600 border-red-700 flex-1">
+            Logout
+          </button>
+        </div>
+      </div>
+      
+      <div v-if="errorMessage" class="bg-red-500/50 text-white p-3 mx-4 my-2 rounded-md">
+        {{ errorMessage }}
+      </div>
+      
+      <!-- Scrollable content area -->
+      <div class="flex-grow overflow-auto p-2 bg-black/60">
+        <div v-if="applications.length === 0 && !isLoading" class="text-center py-10 text-white flex-grow flex items-center justify-center">
+          <div>
+            <p class="text-xl font-minecraft">No applications yet</p>
+            <p class="mt-2">Applications will appear here once submitted</p>
           </div>
         </div>
         
-        <div v-if="errorMessage" class="bg-red-500/50 text-white p-3 mx-4 my-2 rounded-md">
-          {{ errorMessage }}
-        </div>
-        
-        <!-- Applications List -->
-        <div class="flex-grow overflow-auto p-2 bg-black/40">
-          <div v-if="applications.length === 0 && !isLoading" class="text-center py-10 text-white flex-grow flex items-center justify-center">
-            <div>
-              <p class="text-xl font-minecraft">No applications yet</p>
-              <p class="mt-2">Applications will appear here once submitted</p>
-            </div>
-          </div>
-          
-          <div v-else class="space-y-2">
-            <div 
-              v-for="(app, index) in applications" 
-              :key="app.id"
-              class="application-card bg-black/50 border border-minecraft-stone rounded-md p-3"
-              :class="{'bg-minecraft-important-red/10': !app.isReviewed}"
-            >
-              <!-- Header -->
-              <div class="flex items-center justify-between mb-2">
-                <div class="flex items-center gap-2">
-                  <span v-if="!app.isReviewed" class="review-star animate-pulse text-minecraft-important-red">⭐</span>
-                  <span class="font-minecraft" :class="{'text-minecraft-important-red': !app.isReviewed, 'text-white': app.isReviewed}">
-                    #{{ app.id }}
-                  </span>
-                </div>
-                <span 
-                  :class="app.joinedDiscord ? 'bg-minecraft-green' : 'bg-red-500'" 
-                  class="px-2 py-1 rounded-full text-xs"
-                >
-                  {{ app.joinedDiscord ? 'Yes' : 'No' }}
+        <div v-else class="space-y-2">
+          <div 
+            v-for="(app, index) in applications" 
+            :key="app.id"
+            class="application-card bg-black/70 border border-minecraft-stone rounded-md p-3"
+            :class="{'bg-minecraft-important-red/10': !app.isReviewed}"
+          >
+            <!-- Header -->
+            <div class="flex items-center justify-between mb-2">
+              <div class="flex items-center gap-2">
+                <span v-if="!app.isReviewed" class="review-star animate-pulse text-minecraft-important-red">⭐</span>
+                <span class="font-minecraft" :class="{'text-minecraft-important-red': !app.isReviewed, 'text-white': app.isReviewed}">
+                  #{{ app.id }}
                 </span>
               </div>
-              
-              <!-- Player Info -->
-              <div class="space-y-1 mb-2">
-                <div class="flex items-center gap-2">
-                  <span class="text-minecraft-gold">DC:</span>
-                  <span :class="{'text-minecraft-important-red': !app.isReviewed, 'text-white': app.isReviewed}">
-                    {{ app.discordUsername }}
-                  </span>
-                </div>
-                <div class="flex items-center gap-2">
-                  <span class="text-minecraft-gold">MC:</span>
-                  <span 
-                    class="cursor-pointer hover:text-minecraft-gold transition-colors duration-150"
-                    :class="{'text-minecraft-important-red': !app.isReviewed, 'text-white': app.isReviewed, 'copied': app.minecraftUsername === lastCopiedUsername}"
-                    @click="copyToClipboard(app.minecraftUsername)"
-                  >
-                    {{ app.minecraftUsername }}
-                    <span class="copy-icon ml-1 opacity-0 group-hover:opacity-100">📋</span>
-                  </span>
-                </div>
-                <div class="flex items-center gap-2">
-                  <span class="text-minecraft-gold">Age:</span>
-                  <span :class="getAgeColor(app.age)" class="font-bold">
-                    {{ app.age }}
-                  </span>
-                </div>
+              <span 
+                :class="app.joinedDiscord ? 'bg-minecraft-green' : 'bg-red-500'" 
+                class="px-2 py-1 rounded-full text-xs"
+              >
+                {{ app.joinedDiscord ? 'Yes' : 'No' }}
+              </span>
+            </div>
+            
+            <!-- Player Info -->
+            <div class="space-y-1 mb-2">
+              <div class="flex items-center gap-2">
+                <span class="text-minecraft-gold">DC:</span>
+                <span :class="{'text-minecraft-important-red': !app.isReviewed, 'text-white': app.isReviewed}">
+                  {{ app.discordUsername }}
+                </span>
               </div>
-              
-              <!-- Application Content -->
-              <div class="space-y-2">
-                <div>
-                  <span class="text-minecraft-gold block mb-1">FAM:</span>
-                  <p class="text-sm" :class="{'text-minecraft-important-red': !app.isReviewed, 'text-white': app.isReviewed}">
-                    {{ app.favoriteAboutMinecraft }}
-                  </p>
-                </div>
-                <div>
-                  <span class="text-minecraft-gold block mb-1">SU:</span>
-                  <p class="text-sm" :class="{'text-minecraft-important-red': !app.isReviewed, 'text-white': app.isReviewed}">
-                    {{ app.understandingOfSMP }}
-                  </p>
-                </div>
+              <div class="flex items-center gap-2">
+                <span class="text-minecraft-gold">MC:</span>
+                <span 
+                  class="cursor-pointer hover:text-minecraft-gold transition-colors duration-150"
+                  :class="{'text-minecraft-important-red': !app.isReviewed, 'text-white': app.isReviewed, 'copied': app.minecraftUsername === lastCopiedUsername}"
+                  @click="copyToClipboard(app.minecraftUsername)"
+                >
+                  {{ app.minecraftUsername }}
+                  <span class="copy-icon ml-1 opacity-0 group-hover:opacity-100">📋</span>
+                </span>
               </div>
-              
-              <!-- Date and Status -->
-              <div class="mt-2 pt-2 border-t border-minecraft-stone/40">
-                <div class="text-xs" :class="{'text-minecraft-important-red': !app.isReviewed, 'text-white': app.isReviewed}">
-                  Submitted: {{ formatDate(app.submissionDate) }}
-                </div>
-                <div v-if="app.isReviewed" class="text-xs text-green-500">
-                  Reviewed: {{ formatDate(app.reviewedAt) }}
-                </div>
-                <div v-if="app.isReviewed && app.acceptanceStatus" class="mt-1">
-                  <span 
-                    class="text-xs px-2 py-0.5 rounded-full"
-                    :class="{
-                      'bg-green-600 text-white': app.acceptanceStatus === 'accepted',
-                      'bg-red-600 text-white': app.acceptanceStatus === 'rejected',
-                      'bg-yellow-600 text-white': app.acceptanceStatus === 'pending'
-                    }"
-                  >
-                    {{ app.acceptanceStatus === 'accepted' ? 'Accepted' : 
-                       app.acceptanceStatus === 'rejected' ? 'Rejected' : 'Pending' }}
-                  </span>
-                </div>
+              <div class="flex items-center gap-2">
+                <span class="text-minecraft-gold">Age:</span>
+                <span :class="getAgeColor(app.age)" class="font-bold">
+                  {{ app.age }}
+                </span>
               </div>
-              
-              <!-- Actions -->
-              <div class="flex flex-wrap gap-2 mt-3">
-                <button 
-                  v-if="!app.isReviewed"
-                  @click="openReviewModal(app)"
-                  class="mc-button text-xs bg-green-600 hover:bg-green-700 border-green-800 px-2 py-1 review-btn animate-pulse flex-1"
-                  :disabled="isProcessing === app.id"
-                >
-                  <span v-if="isProcessing === app.id">...</span>
-                  <span v-else>Review</span>
-                </button>
-                
-                <button 
-                  v-if="app.isReviewed"
-                  @click="confirmUnreview(app.id)"
-                  class="mc-button text-xs bg-minecraft-important-red hover:bg-red-700 border-red-800 px-2 py-1 flex-1"
-                  :disabled="isProcessing === app.id"
-                >
-                  <span v-if="isProcessing === app.id">...</span>
-                  <span v-else>Unreview</span>
-                </button>
-                
-                <button 
-                  @click="confirmDelete(app.id)"
-                  class="mc-button text-xs bg-red-500 hover:bg-red-600 border-red-700 px-2 py-1 flex-1"
-                  :disabled="isDeleting === app.id"
-                >
-                  <span v-if="isDeleting === app.id">...</span>
-                  <span v-else>Delete</span>
-                </button>
-                
-                <button 
-                  v-if="app.isReviewed && app.reviewNotes"
-                  @click="showNotes(app)"
-                  class="mc-button text-xs bg-minecraft-deepslate hover:bg-gray-700 border-gray-800 px-2 py-1 flex-1"
-                >
-                  Notes
-                </button>
+            </div>
+            
+            <!-- Application Content -->
+            <div class="space-y-2">
+              <div>
+                <span class="text-minecraft-gold block mb-1">FAM:</span>
+                <p class="text-sm" :class="{'text-minecraft-important-red': !app.isReviewed, 'text-white': app.isReviewed}">
+                  {{ app.favoriteAboutMinecraft }}
+                </p>
               </div>
+              <div>
+                <span class="text-minecraft-gold block mb-1">SU:</span>
+                <p class="text-sm" :class="{'text-minecraft-important-red': !app.isReviewed, 'text-white': app.isReviewed}">
+                  {{ app.understandingOfSMP }}
+                </p>
+              </div>
+            </div>
+            
+            <!-- Date and Status -->
+            <div class="mt-2 pt-2 border-t border-minecraft-stone/40">
+              <div class="text-xs" :class="{'text-minecraft-important-red': !app.isReviewed, 'text-white': app.isReviewed}">
+                Submitted: {{ formatDate(app.submissionDate) }}
+              </div>
+              <div v-if="app.isReviewed" class="text-xs text-green-500">
+                Reviewed: {{ formatDate(app.reviewedAt) }}
+              </div>
+              <div v-if="app.isReviewed && app.acceptanceStatus" class="mt-1">
+                <span 
+                  class="text-xs px-2 py-0.5 rounded-full"
+                  :class="{
+                    'bg-green-600 text-white': app.acceptanceStatus === 'accepted',
+                    'bg-red-600 text-white': app.acceptanceStatus === 'rejected',
+                    'bg-yellow-600 text-white': app.acceptanceStatus === 'pending'
+                  }"
+                >
+                  {{ app.acceptanceStatus === 'accepted' ? 'Accepted' : 
+                     app.acceptanceStatus === 'rejected' ? 'Rejected' : 'Pending' }}
+                </span>
+              </div>
+            </div>
+            
+            <!-- Actions -->
+            <div class="flex flex-wrap gap-2 mt-3">
+              <button 
+                v-if="!app.isReviewed"
+                @click="openReviewModal(app)"
+                class="mc-button text-xs bg-green-600 hover:bg-green-700 border-green-800 px-2 py-1 review-btn animate-pulse flex-1"
+                :disabled="isProcessing === app.id"
+              >
+                <span v-if="isProcessing === app.id">...</span>
+                <span v-else>Review</span>
+              </button>
+              
+              <button 
+                v-if="app.isReviewed"
+                @click="confirmUnreview(app.id)"
+                class="mc-button text-xs bg-minecraft-important-red hover:bg-red-700 border-red-800 px-2 py-1 flex-1"
+                :disabled="isProcessing === app.id"
+              >
+                <span v-if="isProcessing === app.id">...</span>
+                <span v-else>Unreview</span>
+              </button>
+              
+              <button 
+                @click="confirmDelete(app.id)"
+                class="mc-button text-xs bg-red-500 hover:bg-red-600 border-red-700 px-2 py-1 flex-1"
+                :disabled="isDeleting === app.id"
+              >
+                <span v-if="isDeleting === app.id">...</span>
+                <span v-else>Delete</span>
+              </button>
+              
+              <button 
+                v-if="app.isReviewed && app.reviewNotes"
+                @click="showNotes(app)"
+                class="mc-button text-xs bg-minecraft-deepslate hover:bg-gray-700 border-gray-800 px-2 py-1 flex-1"
+              >
+                Notes
+              </button>
             </div>
           </div>
         </div>

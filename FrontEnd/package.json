@@ -10,11 +10,12 @@
   },
   "dependencies": {
     "axios": "^1.6.2",
-    "vue": "^3.3.9",
-    "vue-router": "^4.2.5",
-    "pinia": "^2.1.7",
     "gsap": "^3.12.2",
-    "papaparse": "^5.4.1"
+    "papaparse": "^5.4.1",
+    "pinia": "^2.1.7",
+    "tysmp-application-form": "file:",
+    "vue": "^3.3.9",
+    "vue-router": "^4.2.5"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^4.5.0",
@@ -23,4 +24,4 @@
     "tailwindcss": "^3.3.5",
     "vite": "^5.0.4"
   }
-} 
+}

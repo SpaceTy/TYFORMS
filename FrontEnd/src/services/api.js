@@ -102,5 +102,18 @@ export default {
       console.error('Error unreview application:', error);
       return { success: false, error };
     }
+  },
+
+  async updateApplication(applicationId, applicationData) {
+    try {
+      const response = await api.post('/api/application/update', {
+        id: applicationId,
+        ...applicationData
+      });
+      return { success: true, data: response.data };
+    } catch (error) {
+      console.error('Error updating application:', error);
+      return { success: false, error };
+    }
   }
 }; 
