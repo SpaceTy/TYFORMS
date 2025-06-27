@@ -327,63 +327,151 @@ function openDiscord() {
 </script>
 
 <style scoped>
-.age-slider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: #3498db;
-  cursor: pointer;
-  border: 2px solid #2c3e50;
-  box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+.mc-container {
+  max-width: 42rem;
+  margin: 0 auto;
+  padding: 2rem;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 20px;
+  position: relative;
+  z-index: 1;
 }
 
-.age-slider::-moz-range-thumb {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: #3498db;
-  cursor: pointer;
-  border: 2px solid #2c3e50;
-  box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+.mc-title {
+  font-size: 1.875rem;
+  line-height: 2.25rem;
+  color: white;
+  margin-bottom: 2rem;
+  font-family: 'MinecraftPixel', system-ui, sans-serif;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+}
+
+.mc-label {
+  display: block;
+  color: white;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-family: 'Minecraft', system-ui, sans-serif;
+  margin-bottom: 0.5rem;
+}
+
+.mc-input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  transition: all 200ms;
+}
+
+.mc-input::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.mc-input:focus {
+  outline: none;
+  border-color: rgba(52, 152, 219, 0.5);
+  box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.25);
+}
+
+.mc-button {
+  padding: 0.75rem 2rem;
+  border-radius: 0.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  font-family: 'Minecraft', system-ui, sans-serif;
+  transition: all 200ms;
+}
+
+.mc-button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.mc-button:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.25);
+}
+
+.mc-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.mc-radio {
+  width: 1rem;
+  height: 1rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: rgb(52, 152, 219);
+  transition: all 200ms;
+}
+
+.mc-radio:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.25);
+}
+
+.age-slider {
+  appearance: none;
+  height: 0.5rem;
+  border-radius: 0.25rem;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(4px);
 }
 
 .age-slider:focus {
   outline: none;
 }
 
-.age-slider:focus::-webkit-slider-thumb {
-  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.5);
+.age-slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 9999px;
+  background: rgb(52, 152, 219);
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  transition: all 200ms;
 }
 
-.age-slider:focus::-moz-range-thumb {
-  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.5);
-}
-
-.age-input::-webkit-inner-spin-button,
-.age-input::-webkit-outer-spin-button {
-  opacity: 1;
+.age-slider::-webkit-slider-thumb:hover {
+  background: rgba(52, 152, 219, 0.8);
 }
 
 .age-tooltip {
-  transition: opacity 0.3s, transform 0.3s;
-  pointer-events: none; /* Prevent tooltip from interfering with interactions */
-  z-index: 10;
+  background: rgba(52, 152, 219, 0.9);
+  backdrop-filter: blur(4px);
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  color: white;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  transition: opacity 200ms;
 }
 
-/* Custom animations */
-@keyframes pulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.05); }
+.form-group {
+  margin-bottom: 1rem;
 }
 
-.age-selector-container {
-  position: relative;
+.animate-fade-in {
   animation: fadeIn 0.5s ease-out;
 }
 
-.age-slider-container {
-  position: relative;
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 </style>
