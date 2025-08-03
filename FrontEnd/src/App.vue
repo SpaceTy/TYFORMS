@@ -6,16 +6,17 @@
       'py-10 px-4 sm:px-6': !isAdminRoute,
       'p-0': isAdminRoute
     }"
+    style="background: radial-gradient(1200px 600px at 50% -10%, rgba(96,165,250,0.10), transparent), radial-gradient(800px 400px at 80% 20%, rgba(250,204,21,0.08), transparent);"
   >
     <!-- Header is hidden on admin route -->
     <header 
       v-if="!isAdminRoute" 
       class="max-w-4xl mx-auto text-center mb-10 relative z-1"
     >
-      <h1 class="text-3xl sm:text-4xl font-pixel text-white text-shadow-lg mb-4 tracking-wider">
+      <h1 class="text-4xl sm:text-5xl font-pixel text-white drop-shadow mb-3 tracking-wider animate-fade-in">
         TYSMP
       </h1>
-      <p class="text-sm sm:text-base text-minecraft-water font-minecraft tracking-wide">
+      <p class="text-sm sm:text-base text-primary-300 tracking-wide">
         Private Vanilla MC SMP Application
       </p>
     </header>
@@ -36,9 +37,9 @@
     <!-- Footer is hidden on admin route -->
     <footer 
       v-if="!isAdminRoute" 
-      class="max-w-4xl mx-auto mt-10 text-center text-minecraft-stone font-minecraft text-xs tracking-wide relative z-1"
+      class="max-w-4xl mx-auto mt-10 text-center text-neutral-400 text-xs tracking-wide relative z-1"
     >
-      &copy; {{ new Date().getFullYear() }} TYSMP. All rights reserved.
+      &copy; {{ new Date().getFullYear() }} TYSMP · All rights reserved
     </footer>
 
     <!-- Global Confirmation Dialog -->
@@ -131,4 +132,4 @@ html, body, #app {
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 20px;
 }
-</style> 
+</style>

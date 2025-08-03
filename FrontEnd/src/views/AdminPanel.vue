@@ -21,7 +21,7 @@
           />
         </div>
         
-        <div v-if="authError" class="bg-red-500/50 text-white p-3 rounded-md">
+        <div v-if="authError" class="bg-red-600/40 text-white p-3 rounded-lg border border-red-500/30">
           {{ authError }}
         </div>
         
@@ -37,7 +37,7 @@
     <div v-else class="absolute inset-0 p-4">
       <div ref="adminContainerRef" class="admin-panel mc-panel w-full h-full flex flex-col">
         <!-- Fixed top bar -->
-        <div class="flex justify-between items-center px-6 py-4 bg-minecraft-deepslate/90 rounded-t-md sticky top-0 z-20">
+        <div class="flex justify-between items-center px-6 py-4 bg-white/5 backdrop-blur sticky top-0 z-20 border-b border-white/10">
           <h2 class="mc-title mb-0">Applications Dashboard</h2>
           
           <div class="flex gap-2">
@@ -46,72 +46,75 @@
               <span v-else>Refresh</span>
             </button>
             
-            <button @click="handleExport" class="mc-button text-sm">
+            <button @click="handleExport" class="mc-button text-sm secondary">
               Export CSV
             </button>
             
-            <button @click="handleLogout" class="mc-button text-sm bg-red-500 hover:bg-red-600 border-red-700">
+            <button @click="handleLogout" class="mc-button text-sm danger">
               Logout
             </button>
           </div>
         </div>
         
-        <div v-if="errorMessage" class="bg-red-500/50 text-white p-3 mx-6 my-4 rounded-md">
+        <div v-if="errorMessage" class="bg-red-600/40 text-white p-3 mx-6 my-4 rounded-lg border border-red-500/30">
           {{ errorMessage }}
         </div>
         
         <!-- Scrollable content area -->
         <div class="flex-grow overflow-hidden flex flex-col p-6 bg-black/60">
           <div v-if="applications.length === 0 && !isLoading" class="text-center py-10 text-white flex-grow flex items-center justify-center">
-            <div>
-              <p class="text-xl font-minecraft">No applications yet</p>
-              <p class="mt-2">Applications will appear here once submitted</p>
+            <div class="glass p-6 rounded-xl">
+              <p class="text-xl font-medium">No applications yet</p>
+              <p class="mt-2 text-neutral-300">Applications will appear here once submitted</p>
             </div>
           </div>
           
           <div v-else class="overflow-auto flex-grow">
-            <table class="w-full table-fixed bg-black/70 border border-minecraft-stone rounded-md">
-              <thead class="sticky top-0 z-10">
-                <tr class="bg-minecraft-deepslate/90">
-                  <th class="w-20 px-3 py-3 text-left text-sm font-minecraft text-white whitespace-nowrap border-r border-minecraft-stone">#</th>
-                  <th class="w-32 px-3 py-3 text-left text-sm font-minecraft text-white whitespace-nowrap border-r border-minecraft-stone">DC</th>
-                  <th class="w-32 px-3 py-3 text-left text-sm font-minecraft text-white whitespace-nowrap border-r border-minecraft-stone">MC</th>
-                  <th class="w-14 px-3 py-3 text-center text-sm font-minecraft text-white whitespace-nowrap border-r border-minecraft-stone">Age</th>
-                  <th class="w-1/4 px-3 py-3 text-left text-sm font-minecraft text-white whitespace-nowrap border-r border-minecraft-stone">FAM</th>
-                  <th class="w-1/4 px-3 py-3 text-left text-sm font-minecraft text-white whitespace-nowrap border-r border-minecraft-stone">SU</th>
-                  <th class="w-20 px-3 py-3 text-center text-sm font-minecraft text-white whitespace-nowrap border-r border-minecraft-stone">S?</th>
-                  <th class="w-36 px-3 py-3 text-left text-sm font-minecraft text-white whitespace-nowrap border-r border-minecraft-stone">Date</th>
-                  <th class="w-32 px-3 py-3 text-center text-sm font-minecraft text-white whitespace-nowrap">Actions</th>
+            <!-- Rounded wrapper to clip inner table corners -->
+            <!-- Use overflow-clip for better Firefox clipping with sticky header -->
+            <div class="rounded-lg border border-white/10 bg-white/5" style="overflow: clip;">
+              <table class="w-full table-fixed">
+                <thead class="sticky top-0 z-10">
+                  <tr class="bg-white/10 backdrop-blur">
+                  <th class="w-20 px-3 py-3 text-left text-xs font-medium text-neutral-200 uppercase tracking-wide whitespace-nowrap border-r border-white/10">#</th>
+                  <th class="w-32 px-3 py-3 text-left text-xs font-medium text-neutral-200 uppercase tracking-wide whitespace-nowrap border-r border-white/10">DC</th>
+                  <th class="w-32 px-3 py-3 text-left text-xs font-medium text-neutral-200 uppercase tracking-wide whitespace-nowrap border-r border-white/10">MC</th>
+                  <th class="w-14 px-3 py-3 text-center text-xs font-medium text-neutral-200 uppercase tracking-wide whitespace-nowrap border-r border-white/10">Age</th>
+                  <th class="w-1/4 px-3 py-3 text-left text-xs font-medium text-neutral-200 uppercase tracking-wide whitespace-nowrap border-r border-white/10">FAM</th>
+                  <th class="w-1/4 px-3 py-3 text-left text-xs font-medium text-neutral-200 uppercase tracking-wide whitespace-nowrap border-r border-white/10">SU</th>
+                  <th class="w-20 px-3 py-3 text-center text-xs font-medium text-neutral-200 uppercase tracking-wide whitespace-nowrap border-r border-white/10">S?</th>
+                  <th class="w-36 px-3 py-3 text-left text-xs font-medium text-neutral-200 uppercase tracking-wide whitespace-nowrap border-r border-white/10">Date</th>
+                  <th class="w-32 px-3 py-3 text-center text-xs font-medium text-neutral-200 uppercase tracking-wide whitespace-nowrap">Actions</th>
                 </tr>
               </thead>
               
-              <tbody>
+              <tbody class="divide-y divide-white/5">
                 <tr 
                   v-for="(app, index) in applications" 
                   :key="app.id" 
                   :class="[
-                    {'bg-black/30': index % 2 === 0},
-                    {'bg-minecraft-important-red/10': !app.isReviewed}
+                    {'bg-white/[0.02]': index % 2 === 0},
+                    {'bg-red-500/10': !app.isReviewed}
                   ]"
-                  class="border-t border-minecraft-stone hover:bg-minecraft-water/20 transition-colors duration-150 application-row"
+                  class="hover:bg-primary-400/10 transition-colors duration-150 application-row"
                 >
-                  <td class="px-3 py-2 text-sm border-r border-minecraft-stone/40" :class="{'text-minecraft-important-red font-bold': !app.isReviewed, 'text-white': app.isReviewed}">
+                  <td class="px-3 py-2 text-sm" :class="{'text-minecraft-important-red font-bold': !app.isReviewed, 'text-white': app.isReviewed}">
                     <div class="flex items-center justify-between">
                       <span v-if="!app.isReviewed" class="review-star animate-pulse text-minecraft-important-red w-5 flex-shrink-0">⭐</span>
                       <span class="ml-auto">{{ app.id }}</span>
                     </div>
                   </td>
                   
-                  <td class="px-3 py-2 text-sm border-r border-minecraft-stone/40" :class="{'text-minecraft-important-red': !app.isReviewed, 'text-white': app.isReviewed}">
+                  <td class="px-3 py-2 text-sm" :class="{'text-red-400': !app.isReviewed, 'text-white': app.isReviewed}">
                     <div class="tooltip-container" :data-tooltip="app.discordUsername">
                       <div class="truncate">{{ app.discordUsername }}</div>
                     </div>
                   </td>
                   
-                  <td class="px-3 py-2 text-sm border-r border-minecraft-stone/40" :class="{'text-minecraft-important-red': !app.isReviewed, 'text-white': app.isReviewed}">
+                  <td class="px-3 py-2 text-sm" :class="{'text-red-400': !app.isReviewed, 'text-white': app.isReviewed}">
                     <div class="tooltip-container" :data-tooltip="app.minecraftUsername">
                       <div 
-                        class="truncate cursor-pointer hover:text-minecraft-gold transition-colors duration-150"
+                        class="truncate cursor-pointer hover:text-primary-300 transition-colors duration-150"
                         @click="copyToClipboard(app.minecraftUsername)"
                         :class="{'copied': app.minecraftUsername === lastCopiedUsername}"
                       >
@@ -121,36 +124,36 @@
                     </div>
                   </td>
                   
-                  <td class="px-3 py-2 text-sm font-bold text-center border-r border-minecraft-stone/40" :class="getAgeColor(app.age)">
+                  <td class="px-3 py-2 text-sm font-bold text-center" :class="getAgeColor(app.age)">
                     {{ app.age }}
                   </td>
                   
-                  <td class="px-3 py-2 text-sm border-r border-minecraft-stone/40" :class="{'text-minecraft-important-red': !app.isReviewed, 'text-white': app.isReviewed}">
+                  <td class="px-3 py-2 text-sm" :class="{'text-red-400': !app.isReviewed, 'text-white': app.isReviewed}">
                     <div class="tooltip-container" :data-tooltip="app.favoriteAboutMinecraft">
                       <div class="truncate">{{ app.favoriteAboutMinecraft }}</div>
                     </div>
                   </td>
                   
-                  <td class="px-3 py-2 text-sm border-r border-minecraft-stone/40" :class="{'text-minecraft-important-red': !app.isReviewed, 'text-white': app.isReviewed}">
+                  <td class="px-3 py-2 text-sm" :class="{'text-red-400': !app.isReviewed, 'text-white': app.isReviewed}">
                     <div class="tooltip-container" :data-tooltip="app.understandingOfSMP">
                       <div class="truncate">{{ app.understandingOfSMP }}</div>
                     </div>
                   </td>
                   
-                  <td class="px-3 py-2 text-sm text-white text-center border-r border-minecraft-stone/40">
+                  <td class="px-3 py-2 text-sm text-white text-center">
                     <span 
-                      :class="app.joinedDiscord ? 'bg-minecraft-green' : 'bg-red-500'" 
+                      :class="app.joinedDiscord ? 'bg-green-600' : 'bg-red-600'" 
                       class="px-2 py-1 rounded-full text-xs"
                     >
                       {{ app.joinedDiscord ? 'Yes' : 'No' }}
                     </span>
                   </td>
                   
-                  <td class="px-3 py-2 text-sm border-r border-minecraft-stone/40" :class="{'text-minecraft-important-red': !app.isReviewed, 'text-white': app.isReviewed}">
+                  <td class="px-3 py-2 text-sm" :class="{'text-red-400': !app.isReviewed, 'text-white': app.isReviewed}">
                     <div class="tooltip-container" :data-tooltip="formatDate(app.submissionDate, true)">
                       <div class="truncate">{{ formatDate(app.submissionDate) }}</div>
                     </div>
-                    <div v-if="app.isReviewed" class="text-xs mt-1 text-green-500">
+                    <div v-if="app.isReviewed" class="text-xs mt-1 text-green-400">
                       Reviewed: {{ formatDate(app.reviewedAt) }}
                     </div>
                     <div v-if="app.isReviewed && app.acceptanceStatus" class="mt-1">
@@ -159,7 +162,7 @@
                         :class="{
                           'bg-green-600 text-white': app.acceptanceStatus === 'accepted',
                           'bg-red-600 text-white': app.acceptanceStatus === 'rejected',
-                          'bg-yellow-600 text-white': app.acceptanceStatus === 'pending'
+                          'bg-yellow-500 text-black': app.acceptanceStatus === 'pending'
                         }"
                       >
                         {{ app.acceptanceStatus === 'accepted' ? 'Accepted' : 
@@ -173,7 +176,7 @@
                       <button 
                         v-if="!app.isReviewed"
                         @click="openEditModal(app)"
-                        class="mc-button text-xs bg-green-600 hover:bg-green-700 border-green-800 px-2 py-1 review-btn animate-pulse"
+                        class="mc-button text-xs px-2 py-1 review-btn animate-pulse"
                         :disabled="isProcessing === app.id"
                       >
                         <span v-if="isProcessing === app.id">...</span>
@@ -183,7 +186,7 @@
                       <button 
                         v-if="app.isReviewed"
                         @click="confirmUnreview(app.id)"
-                        class="mc-button text-xs bg-minecraft-important-red hover:bg-red-700 border-red-800 px-2 py-1"
+                        class="mc-button text-xs danger px-2 py-1"
                         :disabled="isProcessing === app.id"
                       >
                         <span v-if="isProcessing === app.id">...</span>
@@ -192,7 +195,7 @@
                       
                       <button 
                         @click="confirmDelete(app.id)"
-                        class="mc-button text-xs bg-red-500 hover:bg-red-600 border-red-700 px-2 py-1"
+                        class="mc-button text-xs danger px-2 py-1"
                         :disabled="isDeleting === app.id"
                       >
                         <span v-if="isDeleting === app.id">...</span>
@@ -202,7 +205,7 @@
                       <button 
                         v-if="app.isReviewed && app.reviewNotes"
                         @click="showNotes(app)"
-                        class="mc-button text-xs bg-minecraft-deepslate hover:bg-gray-700 border-gray-800 px-2 py-1"
+                        class="mc-button text-xs secondary px-2 py-1"
                       >
                         Notes
                       </button>
@@ -211,6 +214,7 @@
                 </tr>
               </tbody>
             </table>
+          </div>
           </div>
         </div>
       </div>
@@ -920,13 +924,19 @@ th, td {
   position: relative;
 }
 
+/* Firefox-friendly corner rounding fallback on first/last rows */
+tbody tr:first-child td:first-child { border-top-left-radius: 0.5rem; }
+tbody tr:first-child td:last-child { border-top-right-radius: 0.5rem; }
+tbody tr:last-child td:first-child { border-bottom-left-radius: 0.5rem; }
+tbody tr:last-child td:last-child { border-bottom-right-radius: 0.5rem; }
+
 /* Slightly lighter backgrounds for better contrast between rows */
 tbody tr:nth-child(even) {
-  background-color: rgba(30, 30, 30, 0.4) !important;
+  background-color: rgba(255, 255, 255, 0.03) !important;
 }
 
 tbody tr:hover {
-  background-color: rgba(60, 100, 140, 0.3) !important;
+  background-color: rgba(96, 165, 250, 0.12) !important;
 }
 
 @keyframes pulse {
@@ -948,7 +958,7 @@ tbody tr:hover {
 .review-btn {
   position: relative;
   overflow: hidden;
-  box-shadow: 0 0 8px rgba(50, 205, 50, 0.5);
+  box-shadow: 0 0 8px rgba(50, 205, 50, 0.35);
 }
 
 .review-btn::after {
@@ -1000,4 +1010,4 @@ tbody tr:hover {
     transform: scale(1);
   }
 }
-</style> 
+</style>
