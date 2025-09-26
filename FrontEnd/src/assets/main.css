@@ -2,53 +2,86 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Global modernized theme with glass panels and improved typography */
 @layer base {
-  /* Optimize spacing for Press Start 2P font which is more condensed */
+  html, body, #app {
+    @apply bg-neutral-900 text-neutral-100;
+  }
+
   h1, h2, h3, h4, h5, h6 {
-    letter-spacing: 0.05em;
-    line-height: 1.6;
+    letter-spacing: 0.02em;
+    line-height: 1.35;
   }
   
   p, span, div {
     line-height: 1.6;
   }
+
+  a {
+    @apply text-primary-400 hover:text-primary-300 transition-colors;
+  }
   
   .font-pixel {
-    letter-spacing: 0.05em;
-    line-height: 1.6;
+    letter-spacing: 0.04em;
+    line-height: 1.5;
   }
 }
 
 @layer components {
-  .mc-button {
-    @apply bg-minecraft-stone font-minecraft text-white py-2 px-4 border-b-4 border-minecraft-deepslate hover:bg-minecraft-earth hover:border-minecraft-stone transition-all duration-200 focus:outline-none text-center cursor-pointer text-sm;
-  }
-  
+  /* Panels and Cards */
   .mc-container {
-    @apply bg-black/80 border-2 border-minecraft-stone p-6 rounded-md shadow-xl;
+    @apply max-w-3xl mx-auto p-6 sm:p-8 rounded-2xl bg-white/5 backdrop-blur-xl border border-white/10 shadow-glass;
   }
-  
-  .mc-input {
-    @apply bg-minecraft-deepslate/80 border-2 border-minecraft-stone rounded-md py-2 px-3 text-white w-full focus:outline-none focus:ring-2 focus:ring-minecraft-water transition-all duration-200;
+
+  .mc-panel {
+    @apply rounded-xl bg-white/5 backdrop-blur border border-white/10 shadow-soft;
   }
-  
-  .mc-radio {
-    @apply appearance-none h-5 w-5 border-2 border-minecraft-stone rounded-sm bg-minecraft-deepslate/80 checked:bg-minecraft-green checked:border-minecraft-green focus:outline-none transition-all duration-200 cursor-pointer;
+
+  .glass {
+    @apply bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl;
   }
-  
-  .mc-label {
-    @apply block text-white font-minecraft mb-2 text-sm;
-  }
-  
+
+  /* Titles */
   .mc-title {
-    @apply text-2xl font-minecraft text-minecraft-water mb-6;
+    @apply text-3xl font-pixel text-primary-300 mb-6 drop-shadow;
   }
-  
-  .fade-enter-active, .fade-leave-active {
-    transition: opacity 0.3s;
+
+  /* Labels */
+  .mc-label {
+    @apply block text-sm text-neutral-200 mb-2;
   }
-  
-  .fade-enter-from, .fade-leave-to {
-    opacity: 0;
+
+  /* Inputs */
+  .mc-input {
+    @apply w-full px-4 py-2.5 rounded-lg bg-white/5 border border-white/10 text-white placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary-400/40 focus:border-primary-400/40 transition;
   }
-} 
+
+  /* Radios/checkboxes */
+  .mc-radio {
+    @apply h-4 w-4 appearance-none rounded-sm bg-white/10 border border-white/20 cursor-pointer transition relative;
+    box-shadow: 0 0 0 2px rgba(255,255,255,0.05) inset;
+  }
+  .mc-radio:checked {
+    @apply bg-minecraft-green border-minecraft-green;
+  }
+  .mc-radio:focus {
+    @apply ring-2 ring-primary-400/40 outline-none;
+  }
+
+  /* Buttons */
+  .mc-button {
+    @apply inline-flex items-center justify-center px-4 py-2.5 rounded-lg bg-primary-500/90 hover:bg-primary-500 text-white font-medium shadow-soft transition disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-primary-400/40;
+  }
+  .mc-button.secondary {
+    @apply bg-white/10 hover:bg-white/15;
+  }
+  .mc-button.danger {
+    @apply bg-red-600 hover:bg-red-500;
+  }
+
+  /* Animations and transitions */
+  .fade-enter-active, .fade-leave-active { transition: opacity 0.25s; }
+  .fade-enter-from, .fade-leave-to { opacity: 0; }
+
+  .elevated { @apply shadow-glass; }
+}

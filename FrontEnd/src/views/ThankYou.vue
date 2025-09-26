@@ -5,28 +5,28 @@
       
       <div class="py-6 mb-6">
         <div class="mx-auto w-16 h-16 mb-4 text-4xl">
-          <span class="animate-bounce inline-block text-green-500">✅</span>
+          <span class="animate-bounce inline-block text-green-400 drop-shadow">✅</span>
         </div>
         
-        <p class="text-minecraft-green font-minecraft text-xl mb-4">
+        <p class="text-primary-300 text-xl mb-2 font-medium">
           Your application has been submitted successfully!
         </p>
         
-        <p class="text-white mb-6">
+        <p class="text-neutral-200 mb-2">
           Our admins will review your application and contact you via Discord if you are accepted.
         </p>
         
-        <p class="text-white mb-6">
+        <p class="text-neutral-300">
           Make sure you've joined our Discord server!
         </p>
       </div>
       
-      <div class="flex flex-col sm:flex-row justify-center gap-4">
+      <div class="flex flex-col sm:flex-row justify-center gap-3">
         <button @click="goToDiscord" class="mc-button">
           Join Discord
         </button>
         
-        <button @click="goHome" class="mc-button">
+        <button @click="goHome" class="mc-button secondary">
           Back to Form
         </button>
       </div>
@@ -89,4 +89,4 @@ function goHome() {
   position: relative;
   z-index: 5;
 }
-</style> 
+</style>

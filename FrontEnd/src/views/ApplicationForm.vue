@@ -2,9 +2,9 @@
   <div class="mc-container animate-fade-in">
     <h2 class="mc-title text-center">TYSMP Application Form</h2>
     
-    <p class="text-white mb-6">
+    <p class="text-neutral-300 mb-6 text-center">
       Join the 
-      <a href="#" @click.prevent="openDiscord" class="text-minecraft-water hover:underline">discord</a>
+      <a href="#" @click.prevent="openDiscord" class="font-medium">discord</a>
     </p>
     
     <form @submit.prevent="submitForm" class="space-y-6">
@@ -41,7 +41,7 @@
         <label class="mc-label">
           How old are you? <span class="text-red-500">*</span>
         </label>
-        <div class="flex items-center space-x-4">
+        <div class="flex items-center gap-4">
           <div class="w-full age-slider-container">
             <div class="flex items-center justify-between mb-2">
               <span class="text-white text-xs">13</span>
@@ -62,9 +62,9 @@
                 @touchstart="showTooltip"
               />
               <div 
-                class="age-tooltip absolute -top-12 left-0 bg-minecraft-water text-white text-sm py-1 px-2 rounded-md transform -translate-x-1/2"
+                class="age-tooltip absolute -top-12 left-0 text-white text-sm py-1 px-2 rounded-md transform -translate-x-1/2 shadow-soft"
                 ref="ageTooltip"
-                :class="{ 'opacity-0': !isTooltipVisible }"
+                :class="[isTooltipVisible ? 'bg-primary-500/90' : 'opacity-0']"
               >
                 {{ form.age }}
               </div>
@@ -83,7 +83,7 @@
             />
           </div>
         </div>
-        <div class="text-xs text-minecraft-water mt-1">
+        <div class="text-xs text-primary-300/80 mt-1">
           Drag the slider or type your age (13-99)
         </div>
       </div>
@@ -137,7 +137,7 @@
       </div>
       
       <!-- Error Message -->
-      <div v-if="errorMessage" class="bg-red-500/50 text-white p-3 rounded-md">
+      <div v-if="errorMessage" class="bg-red-600/40 text-white p-3 rounded-lg border border-red-500/30">
         {{ errorMessage }}
       </div>
       
@@ -327,151 +327,42 @@ function openDiscord() {
 </script>
 
 <style scoped>
-.mc-container {
-  max-width: 42rem;
-  margin: 0 auto;
-  padding: 2rem;
-  background: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 20px;
-  position: relative;
-  z-index: 1;
-}
-
-.mc-title {
-  font-size: 1.875rem;
-  line-height: 2.25rem;
-  color: white;
-  margin-bottom: 2rem;
-  font-family: 'MinecraftPixel', system-ui, sans-serif;
-  text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
-}
-
-.mc-label {
-  display: block;
-  color: white;
-  font-size: 0.875rem;
-  line-height: 1.25rem;
-  font-family: 'Minecraft', system-ui, sans-serif;
-  margin-bottom: 0.5rem;
-}
-
-.mc-input {
-  width: 100%;
-  padding: 0.75rem 1rem;
-  border-radius: 0.5rem;
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(4px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: white;
-  transition: all 200ms;
-}
-
-.mc-input::placeholder {
-  color: rgba(255, 255, 255, 0.5);
-}
-
-.mc-input:focus {
-  outline: none;
-  border-color: rgba(52, 152, 219, 0.5);
-  box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.25);
-}
-
-.mc-button {
-  padding: 0.75rem 2rem;
-  border-radius: 0.5rem;
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(4px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: white;
-  font-family: 'Minecraft', system-ui, sans-serif;
-  transition: all 200ms;
-}
-
-.mc-button:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.15);
-  border-color: rgba(255, 255, 255, 0.3);
-}
-
-.mc-button:focus {
-  outline: none;
-  box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.25);
-}
-
-.mc-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.mc-radio {
-  width: 1rem;
-  height: 1rem;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: rgb(52, 152, 219);
-  transition: all 200ms;
-}
-
-.mc-radio:focus {
-  outline: none;
-  box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.25);
-}
-
+/* Override some legacy specifics with the new theme */
 .age-slider {
   appearance: none;
   height: 0.5rem;
   border-radius: 0.25rem;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.12);
   backdrop-filter: blur(4px);
 }
-
-.age-slider:focus {
-  outline: none;
-}
-
+.age-slider:focus { outline: none; }
 .age-slider::-webkit-slider-thumb {
   appearance: none;
-  width: 1.5rem;
-  height: 1.5rem;
+  width: 1.25rem;
+  height: 1.25rem;
   border-radius: 9999px;
-  background: rgb(52, 152, 219);
+  background: rgb(59, 130, 246);
   border: 2px solid rgba(255, 255, 255, 0.5);
   cursor: pointer;
   transition: all 200ms;
 }
-
-.age-slider::-webkit-slider-thumb:hover {
-  background: rgba(52, 152, 219, 0.8);
-}
+.age-slider::-webkit-slider-thumb:hover { background: rgb(96, 165, 250); }
 
 .age-tooltip {
-  background: rgba(52, 152, 219, 0.9);
   backdrop-filter: blur(4px);
   padding: 0.25rem 0.5rem;
-  border-radius: 0.25rem;
+  border-radius: 0.375rem;
   color: white;
   font-size: 0.875rem;
   line-height: 1.25rem;
   transition: opacity 200ms;
 }
 
-.form-group {
-  margin-bottom: 1rem;
-}
+.form-group { margin-bottom: 1rem; }
 
-.animate-fade-in {
-  animation: fadeIn 0.5s ease-out;
-}
-
+.animate-fade-in { animation: fadeIn 0.5s ease-out; }
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 </style>
