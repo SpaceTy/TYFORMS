@@ -112,8 +112,14 @@ export default {
       });
       return { success: true, data: response.data };
     } catch (error) {
-      console.error('Error updating application:', error);
-      return { success: false, error };
+      console.error('❌ Error updating application', {
+        message: error?.message,
+        status: error?.response?.status,
+        data: error?.response?.data,
+        url: error?.config?.url,
+        method: error?.config?.method
+      });
+      throw error;
     }
   }
 }; 
