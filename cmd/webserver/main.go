@@ -40,6 +40,7 @@ func main() {
 	http.HandleFunc("/api/application/review", handler.ReviewApplication)
 	http.HandleFunc("/api/application/delete", handler.DeleteApplication)
 	http.HandleFunc("/api/application/unreview", handler.UnreviewApplication)
+	http.HandleFunc("/api/application/update", handler.UpdateApplication)
 
 	// Serve static files from the wwwroot directory
 	http.Handle("/", http.FileServer(http.Dir("wwwroot")))

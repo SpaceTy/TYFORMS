@@ -270,6 +270,34 @@ func (h *ApplicationHandler) UnreviewApplication(w http.ResponseWriter, r *http.
 	json.NewEncoder(w).Encode(app)
 }
 
+// UpdateApplication handles updating an existing application
+func (h *ApplicationHandler) UpdateApplication(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req models.MinecraftApplication
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// Ensure the application exists before attempting update
+	if _, err := h.store.GetApplication(req.ID); err != nil {
+		http.Error(w, "Application not found", http.StatusNotFound)
+		return
+	}
+
+	if err := h.store.UpdateApplication(&req); err != nil {
+		http.Error(w, "Error updating application", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(req)
+}
+
 // DeleteApplication handles deleting an application (admin only)
 func (h *ApplicationHandler) DeleteApplication(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
