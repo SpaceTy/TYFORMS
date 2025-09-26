@@ -90,7 +90,7 @@
               
               <tbody class="divide-y divide-white/5">
                 <tr 
-                  v-for="(app, index) in applications" 
+                  v-for="(app, index) in filteredApplications" 
                   :key="app.id" 
                   :class="[
                     {'bg-white/[0.02]': index % 2 === 0},
@@ -220,6 +220,53 @@
       </div>
     </div>
     
+    <!-- Floating Search Panel -->
+    <Teleport to="body">
+      <Transition name="slide-up">
+        <div v-if="showSearchPanel" class="fixed inset-x-0 bottom-0 z-[9999] px-4 pb-6 pointer-events-none">
+          <div class="mx-auto max-w-3xl pointer-events-auto">
+            <div class="mc-container bg-black/80 border border-white/10 rounded-xl shadow-xl">
+              <div class="flex items-center justify-between mb-3">
+                <h3 class="mc-title text-base mb-0">Search</h3>
+                <button @click="closeSearchPanel" class="text-white hover:text-red-400 transition">✕</button>
+              </div>
+              <div class="flex items-center gap-3">
+                <input
+                  ref="searchInputRef"
+                  v-model="searchQuery"
+                  type="text"
+                  class="mc-input flex-1"
+                  placeholder="Type to search... (Esc to close)"
+                />
+              </div>
+              <div class="flex flex-wrap gap-4 mt-3 text-xs text-neutral-200">
+                <label class="flex items-center gap-1">
+                  <input type="checkbox" v-model="searchFields.discordUsername" />
+                  <span>Discord</span>
+                </label>
+                <label class="flex items-center gap-1">
+                  <input type="checkbox" v-model="searchFields.minecraftUsername" />
+                  <span>Minecraft</span>
+                </label>
+                <label class="flex items-center gap-1">
+                  <input type="checkbox" v-model="searchFields.favoriteAboutMinecraft" />
+                  <span>FAM</span>
+                </label>
+                <label class="flex items-center gap-1">
+                  <input type="checkbox" v-model="searchFields.understandingOfSMP" />
+                  <span>SU</span>
+                </label>
+                <label class="flex items-center gap-1">
+                  <input type="checkbox" v-model="searchFields.id" />
+                  <span>#</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+    
     <!-- Edit Modal -->
     <Teleport to="body">
       <Transition name="fade" mode="out-in">
@@ -268,7 +315,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, nextTick, inject } from 'vue';
+import { ref, onMounted, onUnmounted, nextTick, inject, computed } from 'vue';
 import { gsap } from 'gsap';
 import api from '../services/api';
 import { useRouter } from 'vue-router';
@@ -306,6 +353,68 @@ let isDragging = false;
 let startY = 0;
 let startTop = 0;
 const lastCopiedUsername = ref('');
+
+// Search state
+const searchQuery = ref('');
+const searchFields = ref({
+  discordUsername: true,
+  minecraftUsername: true,
+  favoriteAboutMinecraft: false,
+  understandingOfSMP: false,
+  id: false
+});
+const showSearchPanel = ref(false);
+const searchInputRef = ref(null);
+
+function fuzzyIncludes(haystack, needle) {
+  if (!needle) return true;
+  const h = String(haystack ?? '').toLowerCase();
+  const n = String(needle).toLowerCase();
+  let i = 0;
+  for (let c of n) {
+    i = h.indexOf(c, i);
+    if (i === -1) return false;
+    i++;
+  }
+  return true;
+}
+
+const filteredApplications = computed(() => {
+  const q = searchQuery.value.trim();
+  if (!q) return applications.value;
+  const fields = searchFields.value;
+  return applications.value.filter(app => {
+    let matched = false;
+    if (fields.discordUsername && fuzzyIncludes(app.discordUsername, q)) matched = true;
+    if (fields.minecraftUsername && fuzzyIncludes(app.minecraftUsername, q)) matched = true;
+    if (fields.favoriteAboutMinecraft && fuzzyIncludes(app.favoriteAboutMinecraft, q)) matched = true;
+    if (fields.understandingOfSMP && fuzzyIncludes(app.understandingOfSMP, q)) matched = true;
+    if (fields.id && fuzzyIncludes(String(app.id), q)) matched = true;
+    return matched;
+  });
+});
+
+function openSearchPanel() {
+  showSearchPanel.value = true;
+  nextTick(() => {
+    if (searchInputRef.value) searchInputRef.value.focus();
+  });
+}
+
+function closeSearchPanel() {
+  showSearchPanel.value = false;
+}
+
+function handleGlobalKeydown(e) {
+  const isCmd = e.metaKey || e.ctrlKey;
+  if (isCmd && (e.key === 'f' || e.key === 'F')) {
+    e.preventDefault();
+    openSearchPanel();
+  } else if (e.key === 'Escape' && showSearchPanel.value) {
+    e.preventDefault();
+    closeSearchPanel();
+  }
+}
 
 function startDragging(event) {
   isDragging = true;
@@ -380,6 +489,7 @@ function setAcceptanceStatus(status) {
 onUnmounted(() => {
   document.removeEventListener('mousemove', handleDrag);
   document.removeEventListener('mouseup', stopDragging);
+  window.removeEventListener('keydown', handleGlobalKeydown);
 });
 
 // Authenticate user
@@ -808,6 +918,8 @@ onMounted(() => {
   
   // Set up tooltip event listeners
   setupTooltipListeners();
+  // Global search hotkey
+  window.addEventListener('keydown', handleGlobalKeydown);
 });
 
 // Format date for display
@@ -1009,5 +1121,16 @@ tbody tr:hover {
   100% {
     transform: scale(1);
   }
+}
+
+/* Slide-up transition for floating search */
+.slide-up-enter-from,
+.slide-up-leave-to {
+  transform: translateY(16px);
+  opacity: 0;
+}
+.slide-up-enter-active,
+.slide-up-leave-active {
+  transition: all 150ms ease;
 }
 </style>

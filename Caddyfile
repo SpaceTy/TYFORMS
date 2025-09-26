@@ -1,18 +1,30 @@
-apply.spacety.dev {
-    # Handle API routes
-    handle /api/* {
-        reverse_proxy localhost:5099
-    }
+apply.tysmp.com {
+  # Handle API routes
+  handle /api/* {
+    reverse_proxy localhost:5099
+  }
 
-    # Handle static files and SPA routing
-    handle {
-        root * wwwroot
-        file_server
-        try_files {path} /index.html
-    }
+  # Handle static files and SPA routing
+  handle {
+    root * wwwroot
+    file_server
+    try_files {path} /index.html
+  }
 
-    # Enable automatic HTTPS
-    tls {
-        protocols tls1.2 tls1.3
-    }
+  # Enable automatic HTTPS
+  tls {
+    protocols tls1.2 tls1.3
+  }
+}
+
+vote.tysmp.com {
+  handle {
+    root * vote
+    file_server
+    try_files {path} /index.html
+  }
+
+  tls {
+    protocols tls1.2 tls1.3
+  }
 }
