@@ -61,7 +61,7 @@
         </div>
         
         <!-- Scrollable content area -->
-        <div class="flex-grow overflow-hidden flex flex-col p-6 bg-black/60">
+        <div class="flex-grow overflow-hidden flex flex-col p-6 bg-black/30 backdrop-blur-md">
           <div v-if="applications.length === 0 && !isLoading" class="text-center py-10 text-white flex-grow flex items-center justify-center">
             <div class="glass p-6 rounded-xl">
               <p class="text-xl font-medium">No applications yet</p>
@@ -72,7 +72,7 @@
           <div v-else class="overflow-auto flex-grow">
             <!-- Rounded wrapper to clip inner table corners -->
             <!-- Use overflow-clip for better Firefox clipping with sticky header -->
-            <div class="rounded-lg border border-white/10 bg-white/5" style="overflow: clip;">
+            <div class="rounded-lg border border-white/10 bg-white/5 backdrop-blur-sm" style="overflow: clip;">
               <table class="w-full table-fixed">
                 <thead class="sticky top-0 z-10">
                   <tr class="bg-white/10 backdrop-blur">
@@ -106,13 +106,13 @@
                   </td>
                   
                   <td class="px-3 py-2 text-sm" :class="{'text-red-400': !app.isReviewed, 'text-white': app.isReviewed}">
-                    <div class="tooltip-container" :data-tooltip="app.discordUsername">
+                    <div class="tooltip-container" :data-tooltip="app.discordUsername" :title="app.discordUsername">
                       <div class="truncate">{{ app.discordUsername }}</div>
                     </div>
                   </td>
                   
                   <td class="px-3 py-2 text-sm" :class="{'text-red-400': !app.isReviewed, 'text-white': app.isReviewed}">
-                    <div class="tooltip-container" :data-tooltip="app.minecraftUsername">
+                    <div class="tooltip-container" :data-tooltip="app.minecraftUsername" :title="app.minecraftUsername">
                       <div 
                         class="truncate cursor-pointer hover:text-primary-300 transition-colors duration-150"
                         @click="copyToClipboard(app.minecraftUsername)"
@@ -129,13 +129,13 @@
                   </td>
                   
                   <td class="px-3 py-2 text-sm" :class="{'text-red-400': !app.isReviewed, 'text-white': app.isReviewed}">
-                    <div class="tooltip-container" :data-tooltip="app.favoriteAboutMinecraft">
+                    <div class="tooltip-container" :data-tooltip="app.favoriteAboutMinecraft" :title="app.favoriteAboutMinecraft">
                       <div class="truncate">{{ app.favoriteAboutMinecraft }}</div>
                     </div>
                   </td>
                   
                   <td class="px-3 py-2 text-sm" :class="{'text-red-400': !app.isReviewed, 'text-white': app.isReviewed}">
-                    <div class="tooltip-container" :data-tooltip="app.understandingOfSMP">
+                    <div class="tooltip-container" :data-tooltip="app.understandingOfSMP" :title="app.understandingOfSMP">
                       <div class="truncate">{{ app.understandingOfSMP }}</div>
                     </div>
                   </td>
@@ -150,7 +150,7 @@
                   </td>
                   
                   <td class="px-3 py-2 text-sm" :class="{'text-red-400': !app.isReviewed, 'text-white': app.isReviewed}">
-                    <div class="tooltip-container" :data-tooltip="formatDate(app.submissionDate, true)">
+                    <div class="tooltip-container" :data-tooltip="formatDate(app.submissionDate, true)" :title="formatDate(app.submissionDate, true)">
                       <div class="truncate">{{ formatDate(app.submissionDate) }}</div>
                     </div>
                     <div v-if="app.isReviewed" class="text-xs mt-1 text-green-400">
@@ -173,6 +173,28 @@
                   
                   <td class="px-3 py-2 text-sm text-white text-center">
                     <div class="flex flex-col gap-2">
+                      <button 
+                        v-if="app.isReviewed && app.acceptanceStatus === 'pending'"
+                        @click="quickSetAcceptance(app, 'accepted')"
+                        class="mc-button text-xs px-2 py-1"
+                        :disabled="isProcessing === app.id"
+                        :title="'Mark as Accepted'"
+                      >
+                        <span v-if="isProcessing === app.id">...</span>
+                        <span v-else>Accept</span>
+                      </button>
+
+                      <button 
+                        v-if="app.isReviewed && app.acceptanceStatus === 'pending'"
+                        @click="quickSetAcceptance(app, 'rejected')"
+                        class="mc-button text-xs danger px-2 py-1"
+                        :disabled="isProcessing === app.id"
+                        :title="'Mark as Rejected'"
+                      >
+                        <span v-if="isProcessing === app.id">...</span>
+                        <span v-else>Reject</span>
+                      </button>
+
                       <button 
                         v-if="!app.isReviewed"
                         @click="openEditModal(app)"
@@ -567,12 +589,21 @@ function showNotes(application) {
 async function handleSaveChanges(updatedApplication) {
   isSubmittingReview.value = true;
   try {
-    await api.updateApplication(updatedApplication.id, updatedApplication);
-    await refreshData();
-    showEditModal.value = false;
+    const response = await api.reviewApplication(
+      updatedApplication.id,
+      authenticatedPassword.value,
+      updatedApplication.reviewNotes || '',
+      updatedApplication.acceptanceStatus || 'pending'
+    );
+    if (response && response.success) {
+      await refreshData();
+      showEditModal.value = false;
+    } else {
+      errorMessage.value = 'Failed to save changes. Please try again.';
+    }
   } catch (error) {
-    console.error('Error updating application:', error);
-    errorMessage.value = 'Failed to update application. Please try again.';
+    console.error('Error saving changes:', error);
+    errorMessage.value = 'Failed to save changes. Please try again.';
   } finally {
     isSubmittingReview.value = false;
   }
@@ -644,6 +675,29 @@ async function deleteApplication(applicationId) {
     errorMessage.value = 'Failed to delete application. Please try again.';
   } finally {
     isDeleting.value = null;
+  }
+}
+
+// Quick accept/reject for pending reviewed applications
+async function quickSetAcceptance(app, status) {
+  if (!app || !app.id) return;
+  isProcessing.value = app.id;
+  try {
+    const response = await api.reviewApplication(
+      app.id,
+      authenticatedPassword.value,
+      app.reviewNotes || '',
+      status
+    );
+    if (response && response.success) {
+      await refreshData();
+    } else {
+      errorMessage.value = 'Failed to update status. Please try again.';
+    }
+  } catch (err) {
+    errorMessage.value = 'Failed to update status. Please try again.';
+  } finally {
+    isProcessing.value = null;
   }
 }
 
