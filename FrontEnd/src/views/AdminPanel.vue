@@ -34,10 +34,10 @@
     </div>
     
     <!-- Admin Dashboard -->
-    <div v-else class="absolute inset-0 p-2">
+    <div v-else class="absolute inset-0 p-4">
       <div ref="adminContainerRef" class="admin-panel mc-panel w-full h-full flex flex-col">
         <!-- Fixed top bar -->
-        <div class="flex justify-between items-center px-4 py-3 bg-white/5 backdrop-blur sticky top-0 z-20 border-b border-white/10">
+        <div class="flex justify-between items-center px-6 py-4 bg-white/5 backdrop-blur sticky top-0 z-20 border-b border-white/10">
           <h2 class="mc-title mb-0">Applications Dashboard</h2>
           
           <div class="flex gap-2">
@@ -56,12 +56,12 @@
           </div>
         </div>
         
-        <div v-if="errorMessage" class="bg-red-600/40 text-white p-3 mx-4 my-3 rounded-lg border border-red-500/30">
+        <div v-if="errorMessage" class="bg-red-600/40 text-white p-3 mx-6 my-4 rounded-lg border border-red-500/30">
           {{ errorMessage }}
         </div>
         
         <!-- Scrollable content area -->
-        <div class="flex-grow overflow-hidden flex flex-col p-4 bg-black/30 backdrop-blur-md">
+        <div class="flex-grow overflow-hidden flex flex-col p-6 bg-black/30 backdrop-blur-md">
           <div v-if="applications.length === 0 && !isLoading" class="text-center py-10 text-white flex-grow flex items-center justify-center">
             <div class="glass p-6 rounded-xl">
               <p class="text-xl font-medium">No applications yet</p>
@@ -73,18 +73,18 @@
             <!-- Rounded wrapper to clip inner table corners -->
             <!-- Use overflow-clip for better Firefox clipping with sticky header -->
             <div class="rounded-lg border border-white/10 bg-white/5 backdrop-blur-sm" style="overflow: clip;">
-              <table class="w-full">
+              <table class="w-full table-fixed">
                 <thead class="sticky top-0 z-10">
                   <tr class="bg-white/10 backdrop-blur">
-                  <th class="min-w-16 px-3 py-3 text-left text-xs font-medium text-neutral-200 uppercase tracking-wide whitespace-nowrap border-r border-white/10">#</th>
-                  <th class="min-w-32 px-3 py-3 text-left text-xs font-medium text-neutral-200 uppercase tracking-wide whitespace-nowrap border-r border-white/10">DC</th>
-                  <th class="min-w-32 px-3 py-3 text-left text-xs font-medium text-neutral-200 uppercase tracking-wide whitespace-nowrap border-r border-white/10">MC</th>
-                  <th class="min-w-16 px-3 py-3 text-center text-xs font-medium text-neutral-200 uppercase tracking-wide whitespace-nowrap border-r border-white/10">Age</th>
-                  <th class="min-w-48 flex-1 px-3 py-3 text-left text-xs font-medium text-neutral-200 uppercase tracking-wide whitespace-nowrap border-r border-white/10">FAM</th>
-                  <th class="min-w-48 flex-1 px-3 py-3 text-left text-xs font-medium text-neutral-200 uppercase tracking-wide whitespace-nowrap border-r border-white/10">SU</th>
-                  <th class="min-w-16 px-3 py-3 text-center text-xs font-medium text-neutral-200 uppercase tracking-wide whitespace-nowrap border-r border-white/10">S?</th>
-                  <th class="min-w-40 px-3 py-3 text-left text-xs font-medium text-neutral-200 uppercase tracking-wide whitespace-nowrap border-r border-white/10">Date</th>
-                  <th class="min-w-40 px-3 py-3 text-center text-xs font-medium text-neutral-200 uppercase tracking-wide whitespace-nowrap">Actions</th>
+                  <th class="w-20 px-3 py-3 text-left text-xs font-medium text-neutral-200 uppercase tracking-wide whitespace-nowrap border-r border-white/10">#</th>
+                  <th class="w-32 px-3 py-3 text-left text-xs font-medium text-neutral-200 uppercase tracking-wide whitespace-nowrap border-r border-white/10">DC</th>
+                  <th class="w-32 px-3 py-3 text-left text-xs font-medium text-neutral-200 uppercase tracking-wide whitespace-nowrap border-r border-white/10">MC</th>
+                  <th class="w-14 px-3 py-3 text-center text-xs font-medium text-neutral-200 uppercase tracking-wide whitespace-nowrap border-r border-white/10">Age</th>
+                  <th class="w-1/4 px-3 py-3 text-left text-xs font-medium text-neutral-200 uppercase tracking-wide whitespace-nowrap border-r border-white/10">FAM</th>
+                  <th class="w-1/4 px-3 py-3 text-left text-xs font-medium text-neutral-200 uppercase tracking-wide whitespace-nowrap border-r border-white/10">SU</th>
+                  <th class="w-20 px-3 py-3 text-center text-xs font-medium text-neutral-200 uppercase tracking-wide whitespace-nowrap border-r border-white/10">S?</th>
+                  <th class="w-36 px-3 py-3 text-left text-xs font-medium text-neutral-200 uppercase tracking-wide whitespace-nowrap border-r border-white/10">Date</th>
+                  <th class="w-32 px-3 py-3 text-center text-xs font-medium text-neutral-200 uppercase tracking-wide whitespace-nowrap">Actions</th>
                 </tr>
               </thead>
               
