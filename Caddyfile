@@ -28,3 +28,15 @@ vote.tysmp.com {
     protocols tls1.2 tls1.3
   }
 }
+
+rules.tysmp.com {
+  handle {
+    root * rules
+    file_server
+    try_files {path} /index.html
+  }
+
+  tls {
+    protocols tls1.2 tls1.3
+  }
+}
