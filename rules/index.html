@@ -14,7 +14,7 @@
 
         body {
             min-height: 100vh;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             display: flex;
             align-items: center;
@@ -38,6 +38,12 @@
             z-index: 5;
             max-width: 48rem;
             width: 100%;
+            background: rgba(15, 23, 42, 0.9);
+            border-radius: 16px;
+            padding: 2rem;
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
         }
 
         .mc-title {
@@ -67,7 +73,11 @@
         }
 
         .text-minecraft-water {
-            color: #3498db;
+            color: #60a5fa;
+        }
+
+        .text-red-400 {
+            color: #f87171;
         }
 
         .text-sm {
@@ -75,10 +85,10 @@
         }
 
         .rules-intro {
-            padding: 1rem;
-            background: rgba(52, 152, 219, 0.1);
+            padding: 1.5rem;
+            background: rgba(59, 130, 246, 0.15);
             border-radius: 12px;
-            border: 1px solid rgba(52, 152, 219, 0.2);
+            border: 1px solid rgba(59, 130, 246, 0.3);
             margin-bottom: 2rem;
         }
 
@@ -89,18 +99,19 @@
         }
 
         .rule-item {
-            background: rgba(255, 255, 255, 0.05);
+            background: rgba(30, 41, 59, 0.8);
             backdrop-filter: blur(8px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.2);
             border-radius: 12px;
             padding: 1.5rem;
             transition: all 0.3s ease;
         }
 
         .rule-item:hover {
-            background: rgba(255, 255, 255, 0.08);
-            border-color: rgba(255, 255, 255, 0.2);
+            background: rgba(30, 41, 59, 0.95);
+            border-color: rgba(59, 130, 246, 0.4);
             transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
         }
 
         .rule-header {
@@ -111,14 +122,14 @@
         }
 
         .rule-number {
-            background: rgba(52, 152, 219, 0.2);
-            color: rgb(52, 152, 219);
+            background: rgba(59, 130, 246, 0.25);
+            color: #60a5fa;
             padding: 0.25rem 0.75rem;
             border-radius: 9999px;
             font-size: 0.875rem;
             font-weight: 600;
             font-family: "Courier New", monospace;
-            border: 1px solid rgba(52, 152, 219, 0.3);
+            border: 1px solid rgba(59, 130, 246, 0.4);
         }
 
         .rule-title {
@@ -130,9 +141,10 @@
         }
 
         .rule-description {
-            color: rgba(255, 255, 255, 0.9);
+            color: #e2e8f0;
             margin-bottom: 0.75rem;
-            line-height: 1.5;
+            line-height: 1.6;
+            font-size: 0.95rem;
         }
 
         .sub-rules {
@@ -142,17 +154,17 @@
         }
 
         .sub-rules li {
-            color: rgba(255, 255, 255, 0.8);
+            color: #cbd5e1;
             padding: 0.5rem 0;
             padding-left: 1.5rem;
             position: relative;
-            line-height: 1.4;
-            font-size: 0.875rem;
+            line-height: 1.5;
+            font-size: 0.9rem;
         }
 
         .sub-rules li::before {
             content: "•";
-            color: rgb(52, 152, 219);
+            color: #60a5fa;
             position: absolute;
             left: 0;
             font-weight: bold;
@@ -160,10 +172,10 @@
 
         .final-note {
             margin-top: 2rem;
-            padding: 1rem;
-            background: rgba(52, 152, 219, 0.1);
+            padding: 1.5rem;
+            background: rgba(239, 68, 68, 0.15);
             border-radius: 12px;
-            border: 1px solid rgba(52, 152, 219, 0.3);
+            border: 1px solid rgba(239, 68, 68, 0.3);
         }
 
         .font-minecraft {
@@ -179,12 +191,12 @@
         }
 
         .mc-button {
-            padding: 0.75rem 2rem;
+            padding: 0.875rem 2rem;
             border-radius: 0.5rem;
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(59, 130, 246, 0.2);
             backdrop-filter: blur(4px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            color: white;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            color: #f1f5f9;
             font-family: "Courier New", monospace;
             transition: all 200ms;
             text-decoration: none;
@@ -192,12 +204,14 @@
             text-align: center;
             cursor: pointer;
             font-size: 1rem;
+            font-weight: 500;
         }
 
         .mc-button:hover:not(:disabled) {
-            background: rgba(255, 255, 255, 0.15);
-            border-color: rgba(255, 255, 255, 0.3);
+            background: rgba(59, 130, 246, 0.3);
+            border-color: rgba(59, 130, 246, 0.5);
             transform: translateY(-1px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
         }
 
         .mc-button:focus {
@@ -254,7 +268,7 @@
             </div>
 
             <div class="final-note mt-8 p-4">
-                <p class="text-minecraft-water text-center font-minecraft">
+                <p class="text-red-400 text-center font-minecraft">
                     If you are caught breaking a rule, consequences will follow.
                 </p>
             </div>
