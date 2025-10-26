@@ -1,508 +1,284 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head></head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TYSMP Server Rules</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>TYSMP Rules</title>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
 
-        body {
-            min-height: 100vh;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 2rem;
-            overflow-x: hidden;
-        }
+            body {
+                background-color: #1a1a1a;
+                color: #e0e0e0;
+                font-family:
+                    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                    sans-serif;
+                font-size: 16px;
+                line-height: 1.6;
+                padding: 2rem;
+            }
 
-        /* Ensure elements remain visible after animation */
-        .rules-content {
-            opacity: 1;
-            position: relative;
-            z-index: 10;
-        }
+            .container {
+                max-width: 800px;
+                margin: 0 auto;
+            }
 
-        .mc-container {
-            display: block;
-            opacity: 1;
-            visibility: visible;
-            position: relative;
-            z-index: 5;
-            max-width: 48rem;
-            width: 100%;
-        }
+            h1 {
+                color: #ffffff;
+                margin-bottom: 2rem;
+                font-size: 2rem;
+            }
 
-        .mc-title {
-            font-size: 2rem;
-            line-height: 2.5rem;
-            color: white;
-            font-family: "Courier New", monospace;
-            text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
-            text-align: center;
-            margin-bottom: 2rem;
-        }
+            .rule {
+                margin-bottom: 2rem;
+                padding-bottom: 1.5rem;
+                border-bottom: 1px solid #333;
+            }
 
-        .text-center {
-            text-align: center;
-        }
-
-        .mb-8 {
-            margin-bottom: 2rem;
-        }
-
-        .mb-4 {
-            margin-bottom: 1rem;
-        }
-
-        .text-white {
-            color: white;
-        }
-
-        .text-minecraft-water {
-            color: #3498db;
-        }
-
-        .text-sm {
-            font-size: 0.875rem;
-        }
-
-        .rules-intro {
-            padding: 1rem;
-            background: rgba(52, 152, 219, 0.1);
-            border-radius: 12px;
-            border: 1px solid rgba(52, 152, 219, 0.2);
-            margin-bottom: 2rem;
-        }
-
-        .rules-list {
-            display: flex;
-            flex-direction: column;
-            gap: 1.5rem;
-        }
-
-        .rule-item {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(8px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            padding: 1.5rem;
-            transition: all 0.3s ease;
-        }
-
-        .rule-item:hover {
-            background: rgba(255, 255, 255, 0.08);
-            border-color: rgba(255, 255, 255, 0.2);
-            transform: translateY(-2px);
-        }
-
-        .rule-header {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            margin-bottom: 1rem;
-        }
-
-        .rule-number {
-            background: rgba(52, 152, 219, 0.2);
-            color: rgb(52, 152, 219);
-            padding: 0.25rem 0.75rem;
-            border-radius: 9999px;
-            font-size: 0.875rem;
-            font-weight: 600;
-            font-family: "Courier New", monospace;
-            border: 1px solid rgba(52, 152, 219, 0.3);
-        }
-
-        .rule-title {
-            color: white;
-            font-size: 1.125rem;
-            font-weight: 600;
-            font-family: "Courier New", monospace;
-            flex: 1;
-        }
-
-        .rule-description {
-            color: rgba(255, 255, 255, 0.9);
-            margin-bottom: 0.75rem;
-            line-height: 1.5;
-        }
-
-        .sub-rules {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-
-        .sub-rules li {
-            color: rgba(255, 255, 255, 0.8);
-            padding: 0.5rem 0;
-            padding-left: 1.5rem;
-            position: relative;
-            line-height: 1.4;
-            font-size: 0.875rem;
-        }
-
-        .sub-rules li::before {
-            content: "•";
-            color: rgb(52, 152, 219);
-            position: absolute;
-            left: 0;
-            font-weight: bold;
-        }
-
-        .final-note {
-            margin-top: 2rem;
-            padding: 1rem;
-            background: rgba(52, 152, 219, 0.1);
-            border-radius: 12px;
-            border: 1px solid rgba(52, 152, 219, 0.3);
-        }
-
-        .font-minecraft {
-            font-family: "Courier New", monospace;
-        }
-
-        .navigation-buttons {
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-            justify-content: center;
-            margin-top: 2rem;
-        }
-
-        .mc-button {
-            padding: 0.75rem 2rem;
-            border-radius: 0.5rem;
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(4px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            color: white;
-            font-family: "Courier New", monospace;
-            transition: all 200ms;
-            text-decoration: none;
-            display: inline-block;
-            text-align: center;
-            cursor: pointer;
-            font-size: 1rem;
-        }
-
-        .mc-button:hover:not(:disabled) {
-            background: rgba(255, 255, 255, 0.15);
-            border-color: rgba(255, 255, 255, 0.3);
-            transform: translateY(-1px);
-        }
-
-        .mc-button:focus {
-            outline: none;
-            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.25);
-        }
-
-        /* Responsive adjustments */
-        @media (max-width: 640px) {
-            .rule-header {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 0.5rem;
+            .rule:last-child {
+                border-bottom: none;
             }
 
             .rule-number {
-                align-self: flex-start;
+                color: #64b5f6;
+                font-weight: bold;
             }
 
-            .mc-container {
-                padding: 1.5rem;
+            .rule-title {
+                color: #ffffff;
+                font-weight: bold;
+                margin-bottom: 0.5rem;
             }
 
-            .navigation-buttons {
-                flex-direction: column;
+            ul {
+                margin-left: 1.5rem;
+                margin-top: 0.5rem;
             }
-        }
 
-        @media (min-width: 640px) {
-            .navigation-buttons {
-                flex-direction: row;
+            li {
+                margin-bottom: 0.5rem;
             }
-        }
-    </style>
-</head>
-<body>
-    <div class="mc-container">
-        <div class="rules-content">
-            <h2 class="mc-title text-center mb-8">TYSMP Server Rules</h2>
 
-            <div class="rules-intro mb-8">
-                <p class="text-white text-center mb-4">
-                    Please read and follow these rules to ensure a great
-                    experience for everyone on the server.
-                </p>
-                <p class="text-minecraft-water text-center text-sm">
-                    Always err on the side of caution, ask when unsure about a
-                    rule.
-                </p>
+            .footer {
+                margin-top: 3rem;
+                padding-top: 2rem;
+                border-top: 1px solid #333;
+                color: #888;
+                font-size: 0.9rem;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>TYSMP Rules</h1>
+
+            <div class="rule">
+                <div class="rule-title">
+                    <span class="rule-number">1.</span> No griefing or stealing
+                </div>
+                <ul>
+                    <li>Stealing: taking something that isn't yours</li>
+                    <li>
+                        Griefing: damaging property that isn't yours. If it was
+                        an accident, ask the property owner if you should repair
+                        it, or how much you owe them for the damage
+                    </li>
+                </ul>
             </div>
 
-            <div class="rules-list space-y-6" id="rulesList">
-                <!-- Rules will be dynamically inserted here -->
+            <div class="rule">
+                <div class="rule-title">
+                    <span class="rule-number">2.</span> Be respectful to other
+                    players
+                </div>
+                <ul>
+                    <li>
+                        Do not bully, instigate conflict or harass other players
+                    </li>
+                    <li>Do not manipulate people into getting what you want</li>
+                    <li>
+                        Be polite and considerate of others, especially during
+                        debates
+                    </li>
+                </ul>
             </div>
 
-            <div class="final-note mt-8 p-4">
-                <p class="text-minecraft-water text-center font-minecraft">
-                    If you are caught breaking a rule, consequences will follow.
-                </p>
+            <div class="rule">
+                <div class="rule-title">
+                    <span class="rule-number">3.</span> No cheating or using
+                    hacks
+                </div>
+                <ul>
+                    <li>
+                        Freecam allowed if not used for finding structures or
+                        ores
+                    </li>
+                    <li>
+                        Minimap allowed if not used for finding structures or
+                        ores
+                    </li>
+                    <li>Worldmaps allowed</li>
+                    <li>
+                        Litematica allowed including easyplace, no printer
+                        addons
+                    </li>
+                    <li>
+                        Render distance expanders like Distant Horizons, or
+                        Bobby are allowed
+                    </li>
+                    <li>Tweakaroo and Minihud allowed</li>
+                    <li>If you are unsure about a mod ask @SpaceTy</li>
+                </ul>
             </div>
 
-            <div class="navigation-buttons flex flex-col sm:flex-row justify-center gap-4 mt-8">
-                <button onclick="goToApplication()" class="mc-button">
-                    Back to Application
-                </button>
+            <div class="rule">
+                <div class="rule-title">
+                    <span class="rule-number">4.</span> Base looting is very
+                    circumstantial
+                </div>
+                <ul>
+                    <li>Permanent ban = base IS free game</li>
+                    <li>Temporary ban = base is NOT free game</li>
+                    <li>
+                        If they share a base with someone else = base is NOT
+                        free game
+                    </li>
+                    <li>
+                        If they are on hiatus/taking a break = base is NOT free
+                        game
+                    </li>
+                    <li>
+                        Ping the property owner in the discord, or private
+                        message them to ask
+                    </li>
+                </ul>
+            </div>
 
-                <button onclick="goToDiscord()" class="mc-button">
-                    Join Discord
-                </button>
+            <div class="rule">
+                <div class="rule-title">
+                    <span class="rule-number">5.</span> Think before you act,
+                    stop when someone tells you to stop
+                </div>
+            </div>
+
+            <div class="rule">
+                <div class="rule-title">
+                    <span class="rule-number">6.</span> Report rule breakers
+                </div>
+                <ul>
+                    <li>
+                        If you resolve conflict on your own but a clear rule was
+                        broken, inform staff
+                    </li>
+                    <li>
+                        Do not keep it a secret to hold against them later, see
+                        rule 2
+                    </li>
+                    <li>
+                        Do not keep it a secret because it didn't bother you,
+                        this encourages the behaviour to continue and puts other
+                        players at risk
+                    </li>
+                </ul>
+            </div>
+
+            <div class="rule">
+                <div class="rule-title">
+                    <span class="rule-number">7.</span> Don't build too close to
+                    others without permission (if unsure ask moderators, or
+                    property owner)
+                </div>
+            </div>
+
+            <div class="rule">
+                <div class="rule-title">
+                    <span class="rule-number">8.</span> Clean up creeper damage
+                </div>
+            </div>
+
+            <div class="rule">
+                <div class="rule-title">
+                    <span class="rule-number">9.</span> No unwanted PvP,
+                    exercise friendly fire with caution (combat, traps, potions
+                    etc.)
+                </div>
+            </div>
+
+            <div class="rule">
+                <div class="rule-title">
+                    <span class="rule-number">10.</span> Don't exploit glitches
+                    (if you are unsure if the glitch is allowed ask moderators
+                    or @SpaceTy)
+                </div>
+            </div>
+
+            <div class="rule">
+                <div class="rule-title">
+                    <span class="rule-number">11.</span> Keep chat English only,
+                    swearing is allowed, vulgar language is not
+                </div>
+                <ul>
+                    <li>
+                        Main chat ingame and in discord. Private messages don't
+                        count
+                    </li>
+                    <li>
+                        If drama happens in another language all context and
+                        proof must be provided, translated individually by all
+                        parties involved separately from each other (all parties
+                        should create their own support ticket to discuss the
+                        conflict)
+                    </li>
+                    <li>
+                        This is to protect the safety and security of the
+                        community, and staff. If the only available staff cannot
+                        understand what is being said, that is unsafe.
+                    </li>
+                </ul>
+            </div>
+
+            <div class="rule">
+                <div class="rule-title">
+                    <span class="rule-number">12.</span> Ask before using
+                    others' farms/resources
+                </div>
+                <ul>
+                    <li>
+                        If a farm is shared, to avoid drama all farm owners must
+                        agree when the farm is being shared to someone new, or
+                        have an agreement on how sharing should be handled.
+                    </li>
+                    <li>
+                        When a farm is shared and someone no longer wants to
+                        share the farm, and you cannot come to a conclusion on
+                        your own, create a ticket so staff can help.
+                    </li>
+                </ul>
+            </div>
+
+            <div class="rule">
+                <div class="rule-title">
+                    <span class="rule-number">13.</span> Do not seek loopholes
+                    to justify breaking rules. It inherently breaks rules 2 and
+                    5.
+                </div>
+            </div>
+
+            <div class="rule">
+                <div class="rule-title">
+                    <span class="rule-number">14.</span> Obey discord ToS in
+                    discord
+                </div>
+            </div>
+
+            <div class="footer">
+                Always err on the side of caution, ask when unsure about a rule,
+                if you are caught breaking a rule consequences will follow.
             </div>
         </div>
-    </div>
-
-    <script>
-        // Rules data extracted from rules.md
-        const rules = [
-            {
-                title: "No griefing or stealing",
-                description: "Respect other players' property and belongings.",
-                subRules: [
-                    "Stealing: taking something that isn't yours",
-                    "Griefing: damaging property that isn't yours. If it was an accident, ask the property owner if you should repair it, or, how much you owe them for the damage",
-                ],
-            },
-            {
-                title: "Be respectful to other players",
-                description: "Maintain a positive and respectful community environment.",
-                subRules: [
-                    "Do not bully, instigate conflict or harass other players",
-                    "Do not manipulate people into getting what you want",
-                    "Be polite and considerate of others, especially during debates",
-                ],
-            },
-            {
-                title: "No cheating or using hacks",
-                description: "Play fairly and maintain the vanilla experience.",
-                subRules: [
-                    "Freecam allowed if not used for finding structures or ores",
-                    "Minimaps allowed if not used for finding structures or ores",
-                    "Worldmaps allowed",
-                    "LiteMatica allowed including easyplace, no printer addons",
-                    "Render distance expanders like Distant Horizons, or Bobby are allowed",
-                    "Tweakeroo and Minihud allowed",
-                    "If you are unsure about a mod ask @SpaceTy",
-                ],
-            },
-            {
-                title: "Base looting is very circumstantial",
-                description: "Base looting depends on the player's status.",
-                subRules: [
-                    "Permanent ban = base IS free game",
-                    "Temporary ban = base is NOT free game",
-                    "If they share a base with someone else = base is NOT free game",
-                    "If they are on hiatus/taking a break = base is NOT free game",
-                    "Ping the property owner in the discord, or, private message them to ask",
-                ],
-            },
-            {
-                title: "Think before you act, stop when someone tells you to stop",
-                description: "Be considerate and responsive to other players' boundaries.",
-            },
-            {
-                title: "Report rule breakers",
-                description: "Help maintain server integrity by reporting violations.",
-                subRules: [
-                    "If you resolve conflict on your own but a clear rule was broken, inform staff",
-                    "Do not keep it a secret to hold against them later, see rule 2",
-                    "Do not keep it a secret because it didn't bother you, this encourages the behaviour to continue and puts other players at risk",
-                ],
-            },
-            {
-                title: "Don't build too close to others without permission",
-                description: "Respect personal space and ask before building near others.",
-                subRules: ["If unsure ask moderators, or property owner"],
-            },
-            {
-                title: "Clean up creeper damage",
-                description: "Take responsibility for any creeper explosions you cause.",
-            },
-            {
-                title: "No unwanted PvP, exercise friendly fire with caution",
-                description: "PvP should be consensual. Be careful with combat, traps, potions etc.",
-            },
-            {
-                title: "Don't exploit glitches",
-                description: "Report and avoid using game glitches.",
-                subRules: [
-                    "If you are unsure if the glitch is allowed ask moderators or @SpaceTy",
-                ],
-            },
-            {
-                title: "Keep chat English only, swearing is allowed, vulgar language is not",
-                description: "Maintain appropriate communication standards.",
-                subRules: [
-                    "Main chat ingame and in discord. Private messages count too",
-                    "If drama happens in another language all context and proof must be provided, translated individually by all parties involved separately from each other (all parties should create their own support ticket to discuss the conflict)",
-                    "This is to protect the safety and security of the community, and staff. If the only available staff cannot understand what is being said, that is unsafe",
-                ],
-            },
-            {
-                title: "Ask before using others' farms/resources",
-                description: "Respect other players' creations and resources.",
-                subRules: [
-                    "If a farm is shared, to avoid drama all farm owners must agree when the farm is being shared to someone new, or have an agreement on how sharing should be handled",
-                    "When a farm is shared and someone no longer wants to share the farm, and you cannot come to a conclusion on your own, create a ticket so staff can help",
-                ],
-            },
-            {
-                title: "Do not use loopholes to justify breaking rules",
-                description: "Finding technicalities doesn't excuse rule violations.",
-                subRules: ["It inherently breaks rules 2 and 5"],
-            },
-            {
-                title: "Obey discord ToS in discord",
-                description: "Follow Discord's Terms of Service while using our Discord server.",
-            },
-        ];
-
-        // Function to render rules
-        function renderRules() {
-            const rulesList = document.getElementById('rulesList');
-
-            rules.forEach((rule, index) => {
-                const ruleItem = document.createElement('div');
-                ruleItem.className = 'rule-item';
-
-                let subRulesHTML = '';
-                if (rule.subRules && rule.subRules.length > 0) {
-                    subRulesHTML = `
-                        <ul class="sub-rules">
-                            ${rule.subRules.map(subRule => `<li>${subRule}</li>`).join('')}
-                        </ul>
-                    `;
-                }
-
-                ruleItem.innerHTML = `
-                    <div class="rule-header">
-                        <h3 class="rule-number">Rule ${index + 1}</h3>
-                        <h4 class="rule-title">${rule.title}</h4>
-                    </div>
-                    <div class="rule-content">
-                        <p class="rule-description">${rule.description}</p>
-                        ${subRulesHTML}
-                    </div>
-                `;
-
-                rulesList.appendChild(ruleItem);
-            });
-        }
-
-        // Animation function
-        function animatePage() {
-            // Make sure the container is visible first
-            gsap.set(".mc-container", {
-                opacity: 1,
-                display: "block",
-                visibility: "visible",
-            });
-
-            // Create entrance animation timeline
-            const tl = gsap.timeline();
-
-            // Animate the container
-            tl.from(".mc-container", {
-                opacity: 0,
-                duration: 0.5,
-                ease: "power2.out",
-            });
-
-            // Animate the title
-            tl.from(
-                ".mc-title",
-                {
-                    opacity: 0,
-                    y: -30,
-                    duration: 0.6,
-                    ease: "power2.out",
-                },
-                "-=0.3",
-            );
-
-            // Animate the intro text
-            tl.from(
-                ".rules-intro",
-                {
-                    opacity: 0,
-                    y: 20,
-                    duration: 0.6,
-                    ease: "power2.out",
-                },
-                "-=0.2",
-            );
-
-            // Animate each rule item with stagger
-            tl.from(
-                ".rule-item",
-                {
-                    opacity: 0,
-                    x: -30,
-                    duration: 0.4,
-                    ease: "power2.out",
-                    stagger: 0.1,
-                },
-                "-=0.3",
-            );
-
-            // Animate the final note
-            tl.from(
-                ".final-note",
-                {
-                    opacity: 0,
-                    y: 20,
-                    duration: 0.6,
-                    ease: "power2.out",
-                },
-                "-=0.2",
-            );
-
-            // Animate navigation buttons
-            tl.from(
-                ".navigation-buttons",
-                {
-                    opacity: 0,
-                    y: 30,
-                    duration: 0.6,
-                    ease: "power2.out",
-                },
-                "-=0.3",
-            );
-        }
-
-        // Navigation functions
-        function goToApplication() {
-            window.location.href = "/";
-        }
-
-        function goToDiscord() {
-            window.open("https://discord.com/invite/gqQFuEK3hk", "_blank");
-        }
-
-        // Initialize the page
-        document.addEventListener('DOMContentLoaded', function() {
-            renderRules();
-            animatePage();
-        });
-    </script>
-</body>
+    </body>
 </html>
