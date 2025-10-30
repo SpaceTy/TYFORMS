@@ -353,6 +353,18 @@
                 });
             }
 
+            handleKeyPress(key) {
+                if (this.gameOver) return;
+                
+                if (key === 'enter') {
+                    this.submitGuess();
+                } else if (key === 'backspace') {
+                    this.deleteLetter();
+                } else if (/^[A-Z]$/.test(key)) {
+                    this.addLetter(key);
+                }
+            }
+
             initEventListeners() {
                 document.addEventListener('keydown', (e) => {
                     if (this.gameOver) return;
