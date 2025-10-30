@@ -34,7 +34,6 @@ let gameState = {
 // Routes
 app.get('/api/game', (req, res) => {
   res.json({
-    targetWord: gameState.targetWord,
     attempts: gameState.attempts,
     currentAttempt: gameState.currentAttempt,
     gameOver: gameState.gameOver,
@@ -102,13 +101,19 @@ app.post('/api/guess', (req, res) => {
     gameState.won = false;
   }
   
-  res.json({
+  const response = {
     feedback,
     attempts: gameState.attempts,
     gameOver: gameState.gameOver,
-    won: gameState.won,
-    targetWord: gameState.targetWord
-  });
+    won: gameState.won
+  };
+  
+  // Only reveal targetWord when game is over
+  if (gameState.gameOver) {
+    response.targetWord = gameState.targetWord;
+  }
+  
+  res.json(response);
 });
 
 app.post('/api/reset', (req, res) => {
@@ -124,7 +129,7 @@ app.post('/api/reset', (req, res) => {
     won: false
   };
   
-  res.json({ message: 'Game reset', targetWord: newTargetWord });
+  res.json({ message: 'Game reset' });
 });
 
 // Serve the frontend
