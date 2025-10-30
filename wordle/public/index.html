@@ -513,7 +513,19 @@
             async loadGameState() {
                 try {
                     const response = await fetch('/api/game');
-                    const data = await response.json();
+                    
+                    if (!response.ok) {
+                        console.error('Game state fetch failed:', response.status, response.statusText);
+                        return;
+                    }
+                    
+                    const text = await response.text();
+                    if (!text) {
+                        console.error('Empty response from /api/game');
+                        return;
+                    }
+                    
+                    const data = JSON.parse(text);
                     
                     if (data.attempts && data.attempts.length > 0) {
                         this.currentRow = data.attempts.length;
@@ -543,7 +555,7 @@
                         }
                     }
                 } catch (error) {
-                    console.error('Error loading game state:', error);
+                    console.error('❌ Error loading game state:', error);
                 }
             }
         }

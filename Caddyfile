@@ -42,6 +42,10 @@ rules.tysmp.com {
 }
 
 wordle.tysmp.com {
+  handle /api/* {
+    reverse_proxy localhost:3000
+  }
+
   handle {
     root * wordle/public
     file_server
