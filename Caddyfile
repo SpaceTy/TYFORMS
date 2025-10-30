@@ -40,3 +40,15 @@ rules.tysmp.com {
     protocols tls1.2 tls1.3
   }
 }
+
+wordle.tysmp.com {
+  handle {
+    root * wordle/public
+    file_server
+    try_files {path} /index.html
+  }
+
+  tls {
+    protocols tls1.2 tls1.3
+  }
+}
