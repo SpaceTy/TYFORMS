@@ -68,8 +68,8 @@
         </div>
         
         <div v-else class="space-y-2">
-          <div 
-            v-for="(app, index) in filteredApplications" 
+          <div
+            v-for="(app, index) in applications"
             :key="app.id"
             class="application-card bg-black/70 border border-minecraft-stone rounded-md p-3"
             :class="{'bg-minecraft-important-red/10': !app.isReviewed}"
@@ -196,10 +196,53 @@
               </button>
             </div>
           </div>
+
+          <!-- Pagination Controls -->
+          <div v-if="totalPages > 1" class="flex flex-col gap-3 mt-4 px-2 py-3 bg-black/50 rounded-md border border-minecraft-stone/30">
+            <div class="text-xs text-center text-neutral-300">
+              {{ ((currentPage - 1) * perPage) + 1 }}-{{ Math.min(currentPage * perPage, totalCount) }} of {{ totalCount }}
+            </div>
+
+            <div class="flex items-center justify-center gap-2">
+              <button
+                @click="previousPage"
+                :disabled="currentPage === 1"
+                class="mc-button text-xs px-3 py-2"
+                :class="{ 'opacity-50': currentPage === 1 }"
+              >
+                Prev
+              </button>
+
+              <div class="flex gap-1">
+                <button
+                  v-for="page in getPageNumbers()"
+                  :key="page"
+                  @click="page !== '...' ? goToPage(page) : null"
+                  class="px-2 py-1 text-xs rounded transition-colors duration-150 min-w-[28px]"
+                  :class="{
+                    'bg-minecraft-gold text-black font-bold': page === currentPage,
+                    'bg-white/10 text-white': page !== currentPage && page !== '...',
+                    'text-neutral-500 cursor-default': page === '...'
+                  }"
+                >
+                  {{ page }}
+                </button>
+              </div>
+
+              <button
+                @click="nextPage"
+                :disabled="currentPage === totalPages"
+                class="mc-button text-xs px-3 py-2"
+                :class="{ 'opacity-50': currentPage === totalPages }"
+              >
+                Next
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
-    
+
     <!-- Floating Search Panel -->
     <Teleport to="body">
       <Transition name="slide-up">
@@ -214,32 +257,14 @@
                 <input
                   ref="searchInputRef"
                   v-model="searchQuery"
+                  @input="handleSearchInput"
                   type="text"
                   class="mc-input flex-1"
-                  placeholder="Type to search... (Esc to close)"
+                  placeholder="Search all applications... (Esc to close)"
                 />
               </div>
-              <div class="flex flex-wrap gap-4 mt-3 text-xs text-neutral-200">
-                <label class="flex items-center gap-1">
-                  <input type="checkbox" v-model="searchFields.discordUsername" />
-                  <span>Discord</span>
-                </label>
-                <label class="flex items-center gap-1">
-                  <input type="checkbox" v-model="searchFields.minecraftUsername" />
-                  <span>Minecraft</span>
-                </label>
-                <label class="flex items-center gap-1">
-                  <input type="checkbox" v-model="searchFields.favoriteAboutMinecraft" />
-                  <span>FAM</span>
-                </label>
-                <label class="flex items-center gap-1">
-                  <input type="checkbox" v-model="searchFields.understandingOfSMP" />
-                  <span>SU</span>
-                </label>
-                <label class="flex items-center gap-1">
-                  <input type="checkbox" v-model="searchFields.id" />
-                  <span>#</span>
-                </label>
+              <div class="mt-2 text-xs text-neutral-400 text-center">
+                Searches Discord, Minecraft, responses, and ID
               </div>
             </div>
           </div>
@@ -388,43 +413,15 @@ const lastCopiedUsername = ref('');
 
 // Search state
 const searchQuery = ref('');
-const searchFields = ref({
-  discordUsername: true,
-  minecraftUsername: true,
-  favoriteAboutMinecraft: false,
-  understandingOfSMP: false,
-  id: false
-});
 const showSearchPanel = ref(false);
 const searchInputRef = ref(null);
+let searchTimeout = null;
 
-function fuzzyIncludes(haystack, needle) {
-  if (!needle) return true;
-  const h = String(haystack ?? '').toLowerCase();
-  const n = String(needle).toLowerCase();
-  let i = 0;
-  for (let c of n) {
-    i = h.indexOf(c, i);
-    if (i === -1) return false;
-    i++;
-  }
-  return true;
-}
-
-const filteredApplications = computed(() => {
-  const q = searchQuery.value.trim();
-  if (!q) return applications.value;
-  const fields = searchFields.value;
-  return applications.value.filter(app => {
-    let matched = false;
-    if (fields.discordUsername && fuzzyIncludes(app.discordUsername, q)) matched = true;
-    if (fields.minecraftUsername && fuzzyIncludes(app.minecraftUsername, q)) matched = true;
-    if (fields.favoriteAboutMinecraft && fuzzyIncludes(app.favoriteAboutMinecraft, q)) matched = true;
-    if (fields.understandingOfSMP && fuzzyIncludes(app.understandingOfSMP, q)) matched = true;
-    if (fields.id && fuzzyIncludes(String(app.id), q)) matched = true;
-    return matched;
-  });
-});
+// Pagination state
+const currentPage = ref(1);
+const perPage = ref(20);
+const totalPages = ref(0);
+const totalCount = ref(0);
 
 function openSearchPanel() {
   showSearchPanel.value = true;
@@ -435,6 +432,19 @@ function openSearchPanel() {
 
 function closeSearchPanel() {
   showSearchPanel.value = false;
+}
+
+// Debounced search function
+function handleSearchInput() {
+  if (searchTimeout) {
+    clearTimeout(searchTimeout);
+  }
+
+  searchTimeout = setTimeout(() => {
+    // Reset to page 1 when searching
+    currentPage.value = 1;
+    refreshData(1);
+  }, 300); // 300ms debounce
 }
 
 function handleGlobalKeydown(e) {
@@ -675,18 +685,34 @@ async function deleteApplication(applicationId) {
 }
 
 // Fetch applications
-async function refreshData() {
+async function refreshData(page = null) {
   isLoading.value = true;
   errorMessage.value = '';
-  
+
+  // If page is provided, update current page
+  if (page !== null) {
+    currentPage.value = page;
+  }
+
   try {
-    const response = await api.getApplications(authenticatedPassword.value);
-    
+    const response = await api.getApplications(
+      authenticatedPassword.value,
+      currentPage.value,
+      perPage.value,
+      searchQuery.value.trim()
+    );
+
     if (response && response.success) {
       const oldLength = applications.value.length;
-      // Sort applications in reverse order by ID, handle null response
-      applications.value = (response.data || []).sort((a, b) => b.id - a.id);
-      
+      // Applications are already sorted by ID DESC from the backend
+      applications.value = response.data || [];
+
+      // Update pagination metadata
+      if (response.pagination) {
+        totalPages.value = response.pagination.total_pages;
+        totalCount.value = response.pagination.total_count;
+      }
+
       if (oldLength === 0 && applications.value.length > 0) {
         nextTick(() => {
           const cards = document.querySelectorAll('.application-card');
@@ -755,13 +781,71 @@ async function copyToClipboard(text) {
   try {
     await navigator.clipboard.writeText(text);
     lastCopiedUsername.value = text;
-    
+
     setTimeout(() => {
       lastCopiedUsername.value = '';
     }, 2000);
   } catch (err) {
     console.error('Failed to copy text: ', err);
   }
+}
+
+// Pagination navigation functions
+function goToPage(page) {
+  if (page >= 1 && page <= totalPages.value) {
+    refreshData(page);
+  }
+}
+
+function nextPage() {
+  if (currentPage.value < totalPages.value) {
+    refreshData(currentPage.value + 1);
+  }
+}
+
+function previousPage() {
+  if (currentPage.value > 1) {
+    refreshData(currentPage.value - 1);
+  }
+}
+
+function getPageNumbers() {
+  const pages = [];
+  const total = totalPages.value;
+  const current = currentPage.value;
+
+  if (total <= 5) {
+    // If 5 or fewer pages, show all (mobile has less space)
+    for (let i = 1; i <= total; i++) {
+      pages.push(i);
+    }
+  } else {
+    // Always show first page
+    pages.push(1);
+
+    if (current > 2) {
+      pages.push('...');
+    }
+
+    // Show current page and adjacent pages
+    const start = Math.max(2, current - 1);
+    const end = Math.min(total - 1, current + 1);
+
+    for (let i = start; i <= end; i++) {
+      if (i !== 1 && i !== total) {
+        pages.push(i);
+      }
+    }
+
+    if (current < total - 1) {
+      pages.push('...');
+    }
+
+    // Always show last page
+    pages.push(total);
+  }
+
+  return pages;
 }
 
 // Format date for display

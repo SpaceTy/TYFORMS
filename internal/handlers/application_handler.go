@@ -87,9 +87,12 @@ func (h *ApplicationHandler) GetApplications(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	// Check admin password
+	// Check admin password, pagination, and search parameters
 	var auth struct {
 		Password string `json:"password"`
+		Page     int    `json:"page"`
+		Limit    int    `json:"limit"`
+		Search   string `json:"search"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&auth); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
@@ -101,16 +104,69 @@ func (h *ApplicationHandler) GetApplications(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	applications, err := h.store.GetAllApplications()
-	if err != nil {
-		http.Error(w, "Error retrieving applications", http.StatusInternalServerError)
-		return
+	// Set default pagination values
+	page := auth.Page
+	if page < 1 {
+		page = 1
+	}
+	limit := auth.Limit
+	if limit < 1 {
+		limit = 20 // Default page size
+	}
+
+	// Calculate offset
+	offset := (page - 1) * limit
+
+	var applications []*models.MinecraftApplication
+	var totalCount int
+
+	// Check if search query is provided
+	if auth.Search != "" {
+		// Use search query
+		var err error
+		applications, err = h.store.SearchApplicationsPaginated(auth.Search, limit, offset)
+		if err != nil {
+			http.Error(w, "Error searching applications", http.StatusInternalServerError)
+			return
+		}
+
+		totalCount, err = h.store.GetSearchResultsCount(auth.Search)
+		if err != nil {
+			http.Error(w, "Error counting search results", http.StatusInternalServerError)
+			return
+		}
+	} else {
+		// No search, get all applications paginated
+		var err error
+		applications, err = h.store.GetApplicationsPaginated(limit, offset)
+		if err != nil {
+			http.Error(w, "Error retrieving applications", http.StatusInternalServerError)
+			return
+		}
+
+		totalCount, err = h.store.GetApplicationsCount()
+		if err != nil {
+			http.Error(w, "Error counting applications", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	// Calculate total pages
+	totalPages := (totalCount + limit - 1) / limit
+	if totalPages < 1 {
+		totalPages = 1
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	response := map[string]interface{}{
 		"success": true,
 		"data":    applications,
+		"pagination": map[string]interface{}{
+			"current_page": page,
+			"per_page":     limit,
+			"total_count":  totalCount,
+			"total_pages":  totalPages,
+		},
 	}
 	json.NewEncoder(w).Encode(response)
 }

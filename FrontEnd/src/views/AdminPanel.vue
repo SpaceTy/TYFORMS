@@ -89,8 +89,8 @@
               </thead>
               
               <tbody class="divide-y divide-white/5">
-                <tr 
-                  v-for="(app, index) in filteredApplications" 
+                <tr
+                  v-for="(app, index) in applications"
                   :key="app.id" 
                   :class="[
                     {'bg-white/[0.02]': index % 2 === 0},
@@ -237,6 +237,49 @@
               </tbody>
             </table>
           </div>
+
+          <!-- Pagination Controls -->
+          <div v-if="totalPages > 1" class="flex items-center justify-between mt-6 px-4 py-3 bg-white/5 backdrop-blur rounded-lg border border-white/10">
+            <div class="text-sm text-neutral-300">
+              Showing {{ ((currentPage - 1) * perPage) + 1 }} to {{ Math.min(currentPage * perPage, totalCount) }} of {{ totalCount }} applications
+            </div>
+
+            <div class="flex items-center gap-2">
+              <button
+                @click="previousPage"
+                :disabled="currentPage === 1"
+                class="mc-button text-sm px-3 py-1"
+                :class="{ 'opacity-50 cursor-not-allowed': currentPage === 1 }"
+              >
+                Previous
+              </button>
+
+              <div class="flex gap-1">
+                <button
+                  v-for="page in getPageNumbers()"
+                  :key="page"
+                  @click="page !== '...' ? goToPage(page) : null"
+                  class="px-3 py-1 text-sm rounded transition-colors duration-150"
+                  :class="{
+                    'bg-primary-500 text-white': page === currentPage,
+                    'bg-white/10 text-white hover:bg-white/20': page !== currentPage && page !== '...',
+                    'text-neutral-500 cursor-default': page === '...'
+                  }"
+                >
+                  {{ page }}
+                </button>
+              </div>
+
+              <button
+                @click="nextPage"
+                :disabled="currentPage === totalPages"
+                class="mc-button text-sm px-3 py-1"
+                :class="{ 'opacity-50 cursor-not-allowed': currentPage === totalPages }"
+              >
+                Next
+              </button>
+            </div>
+          </div>
           </div>
         </div>
       </div>
@@ -256,32 +299,14 @@
                 <input
                   ref="searchInputRef"
                   v-model="searchQuery"
+                  @input="handleSearchInput"
                   type="text"
                   class="mc-input flex-1"
-                  placeholder="Type to search... (Esc to close)"
+                  placeholder="Search across all applications... (Esc to close)"
                 />
               </div>
-              <div class="flex flex-wrap gap-4 mt-3 text-xs text-neutral-200">
-                <label class="flex items-center gap-1">
-                  <input type="checkbox" v-model="searchFields.discordUsername" />
-                  <span>Discord</span>
-                </label>
-                <label class="flex items-center gap-1">
-                  <input type="checkbox" v-model="searchFields.minecraftUsername" />
-                  <span>Minecraft</span>
-                </label>
-                <label class="flex items-center gap-1">
-                  <input type="checkbox" v-model="searchFields.favoriteAboutMinecraft" />
-                  <span>FAM</span>
-                </label>
-                <label class="flex items-center gap-1">
-                  <input type="checkbox" v-model="searchFields.understandingOfSMP" />
-                  <span>SU</span>
-                </label>
-                <label class="flex items-center gap-1">
-                  <input type="checkbox" v-model="searchFields.id" />
-                  <span>#</span>
-                </label>
+              <div class="mt-2 text-xs text-neutral-400 text-center">
+                Searches across Discord, Minecraft usernames, responses, and ID
               </div>
             </div>
           </div>
@@ -378,43 +403,15 @@ const lastCopiedUsername = ref('');
 
 // Search state
 const searchQuery = ref('');
-const searchFields = ref({
-  discordUsername: true,
-  minecraftUsername: true,
-  favoriteAboutMinecraft: false,
-  understandingOfSMP: false,
-  id: false
-});
 const showSearchPanel = ref(false);
 const searchInputRef = ref(null);
+let searchTimeout = null;
 
-function fuzzyIncludes(haystack, needle) {
-  if (!needle) return true;
-  const h = String(haystack ?? '').toLowerCase();
-  const n = String(needle).toLowerCase();
-  let i = 0;
-  for (let c of n) {
-    i = h.indexOf(c, i);
-    if (i === -1) return false;
-    i++;
-  }
-  return true;
-}
-
-const filteredApplications = computed(() => {
-  const q = searchQuery.value.trim();
-  if (!q) return applications.value;
-  const fields = searchFields.value;
-  return applications.value.filter(app => {
-    let matched = false;
-    if (fields.discordUsername && fuzzyIncludes(app.discordUsername, q)) matched = true;
-    if (fields.minecraftUsername && fuzzyIncludes(app.minecraftUsername, q)) matched = true;
-    if (fields.favoriteAboutMinecraft && fuzzyIncludes(app.favoriteAboutMinecraft, q)) matched = true;
-    if (fields.understandingOfSMP && fuzzyIncludes(app.understandingOfSMP, q)) matched = true;
-    if (fields.id && fuzzyIncludes(String(app.id), q)) matched = true;
-    return matched;
-  });
-});
+// Pagination state
+const currentPage = ref(1);
+const perPage = ref(20);
+const totalPages = ref(0);
+const totalCount = ref(0);
 
 function openSearchPanel() {
   showSearchPanel.value = true;
@@ -425,6 +422,19 @@ function openSearchPanel() {
 
 function closeSearchPanel() {
   showSearchPanel.value = false;
+}
+
+// Debounced search function
+function handleSearchInput() {
+  if (searchTimeout) {
+    clearTimeout(searchTimeout);
+  }
+
+  searchTimeout = setTimeout(() => {
+    // Reset to page 1 when searching
+    currentPage.value = 1;
+    refreshData(1);
+  }, 300); // 300ms debounce
 }
 
 function handleGlobalKeydown(e) {
@@ -844,18 +854,34 @@ function hideAllTooltips() {
 }
 
 // Update refreshData to set up tooltip listeners after data changes
-async function refreshData() {
+async function refreshData(page = null) {
   isLoading.value = true;
   errorMessage.value = '';
-  
+
+  // If page is provided, update current page
+  if (page !== null) {
+    currentPage.value = page;
+  }
+
   try {
-    const response = await api.getApplications(authenticatedPassword.value);
-    
+    const response = await api.getApplications(
+      authenticatedPassword.value,
+      currentPage.value,
+      perPage.value,
+      searchQuery.value.trim()
+    );
+
     if (response.success) {
       const oldLength = applications.value.length;
-      // Sort applications in reverse order by ID, handle null response
-      applications.value = (response.data || []).sort((a, b) => b.id - a.id);
-      
+      // Applications are already sorted by ID DESC from the backend
+      applications.value = response.data || [];
+
+      // Update pagination metadata
+      if (response.pagination) {
+        totalPages.value = response.pagination.total_pages;
+        totalCount.value = response.pagination.total_count;
+      }
+
       if (oldLength === 0 && applications.value.length > 0) {
         nextTick(() => {
           gsap.from('table', {
@@ -864,7 +890,7 @@ async function refreshData() {
             duration: 0.5,
             ease: 'power2.out'
           });
-          
+
           gsap.from('.application-row', {
             opacity: 0,
             y: 15,
@@ -880,7 +906,7 @@ async function refreshData() {
               container.scrollTo({ top: 0, behavior: 'smooth' });
             }
           }, 500);
-          
+
           // Set up tooltip listeners after data is rendered
           setupTooltipListeners();
         });
@@ -905,7 +931,7 @@ async function refreshData() {
               container.scrollTo({ top: 0, behavior: 'smooth' });
             }
           }, 500);
-          
+
           // Set up tooltip listeners after data is rendered
           setupTooltipListeners();
         });
@@ -1039,6 +1065,62 @@ const handleRefresh = async () => {
 function closeEditModal() {
   showEditModal.value = false;
   selectedApplication.value = null;
+}
+
+// Pagination navigation functions
+function goToPage(page) {
+  if (page >= 1 && page <= totalPages.value) {
+    refreshData(page);
+  }
+}
+
+function nextPage() {
+  if (currentPage.value < totalPages.value) {
+    refreshData(currentPage.value + 1);
+  }
+}
+
+function previousPage() {
+  if (currentPage.value > 1) {
+    refreshData(currentPage.value - 1);
+  }
+}
+
+function getPageNumbers() {
+  const pages = [];
+  const total = totalPages.value;
+  const current = currentPage.value;
+
+  if (total <= 7) {
+    // If 7 or fewer pages, show all
+    for (let i = 1; i <= total; i++) {
+      pages.push(i);
+    }
+  } else {
+    // Always show first page
+    pages.push(1);
+
+    if (current > 3) {
+      pages.push('...');
+    }
+
+    // Show pages around current page
+    const start = Math.max(2, current - 1);
+    const end = Math.min(total - 1, current + 1);
+
+    for (let i = start; i <= end; i++) {
+      pages.push(i);
+    }
+
+    if (current < total - 2) {
+      pages.push('...');
+    }
+
+    // Always show last page
+    pages.push(total);
+  }
+
+  return pages;
 }
 </script>
 

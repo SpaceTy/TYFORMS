@@ -152,6 +152,120 @@ func (s *SQLiteStore) GetAllApplications() ([]*models.MinecraftApplication, erro
 	return applications, nil
 }
 
+// GetApplicationsPaginated retrieves applications with pagination
+func (s *SQLiteStore) GetApplicationsPaginated(limit, offset int) ([]*models.MinecraftApplication, error) {
+	query := `SELECT * FROM applications ORDER BY id DESC LIMIT ? OFFSET ?`
+	rows, err := s.db.Query(query, limit, offset)
+	if err != nil {
+		return nil, fmt.Errorf("error querying applications: %w", err)
+	}
+	defer rows.Close()
+
+	var applications []*models.MinecraftApplication
+	for rows.Next() {
+		app := &models.MinecraftApplication{}
+		err := rows.Scan(
+			&app.ID,
+			&app.DiscordUsername,
+			&app.MinecraftUsername,
+			&app.Age,
+			&app.FavoriteAboutMinecraft,
+			&app.UnderstandingOfSMP,
+			&app.JoinedDiscord,
+			&app.SubmissionDate,
+			&app.IsReviewed,
+			&app.ReviewedAt,
+			&app.ReviewNotes,
+			&app.AcceptanceStatus,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("error scanning application: %w", err)
+		}
+		applications = append(applications, app)
+	}
+
+	return applications, nil
+}
+
+// GetApplicationsCount returns the total number of applications
+func (s *SQLiteStore) GetApplicationsCount() (int, error) {
+	query := `SELECT COUNT(*) FROM applications`
+	var count int
+	err := s.db.QueryRow(query).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("error counting applications: %w", err)
+	}
+	return count, nil
+}
+
+// SearchApplicationsPaginated retrieves applications matching search criteria with pagination
+func (s *SQLiteStore) SearchApplicationsPaginated(searchQuery string, limit, offset int) ([]*models.MinecraftApplication, error) {
+	// Build the WHERE clause for search
+	// Search in discord_username, minecraft_username, favorite_about_minecraft, understanding_of_smp, and id
+	query := `
+		SELECT * FROM applications
+		WHERE
+			discord_username LIKE ? OR
+			minecraft_username LIKE ? OR
+			favorite_about_minecraft LIKE ? OR
+			understanding_of_smp LIKE ? OR
+			CAST(id AS TEXT) LIKE ?
+		ORDER BY id DESC
+		LIMIT ? OFFSET ?`
+
+	searchPattern := "%" + searchQuery + "%"
+	rows, err := s.db.Query(query, searchPattern, searchPattern, searchPattern, searchPattern, searchPattern, limit, offset)
+	if err != nil {
+		return nil, fmt.Errorf("error searching applications: %w", err)
+	}
+	defer rows.Close()
+
+	var applications []*models.MinecraftApplication
+	for rows.Next() {
+		app := &models.MinecraftApplication{}
+		err := rows.Scan(
+			&app.ID,
+			&app.DiscordUsername,
+			&app.MinecraftUsername,
+			&app.Age,
+			&app.FavoriteAboutMinecraft,
+			&app.UnderstandingOfSMP,
+			&app.JoinedDiscord,
+			&app.SubmissionDate,
+			&app.IsReviewed,
+			&app.ReviewedAt,
+			&app.ReviewNotes,
+			&app.AcceptanceStatus,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("error scanning application: %w", err)
+		}
+		applications = append(applications, app)
+	}
+
+	return applications, nil
+}
+
+// GetSearchResultsCount returns the count of applications matching the search query
+func (s *SQLiteStore) GetSearchResultsCount(searchQuery string) (int, error) {
+	query := `
+		SELECT COUNT(*) FROM applications
+		WHERE
+			discord_username LIKE ? OR
+			minecraft_username LIKE ? OR
+			favorite_about_minecraft LIKE ? OR
+			understanding_of_smp LIKE ? OR
+			CAST(id AS TEXT) LIKE ?`
+
+	searchPattern := "%" + searchQuery + "%"
+	var count int
+	err := s.db.QueryRow(query, searchPattern, searchPattern, searchPattern, searchPattern, searchPattern).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("error counting search results: %w", err)
+	}
+	return count, nil
+}
+
 // UpdateApplication updates an existing application
 func (s *SQLiteStore) UpdateApplication(app *models.MinecraftApplication) error {
 	query := `
