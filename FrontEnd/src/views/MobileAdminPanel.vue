@@ -1,374 +1,348 @@
 <template>
-  <div class="h-full w-full absolute inset-0 flex items-center justify-center">
+  <div class="h-full w-full absolute inset-0 bg-neutral-900 text-white overflow-hidden" @mousemove.stop>
     <!-- Login Form -->
-    <div v-if="!isAuthenticated" class="login-container mc-container animate-fade-in max-w-md w-full mx-4">
-      <h2 class="mc-title text-center">Admin Login</h2>
-      
-      <form @submit.prevent="authenticate" class="space-y-6">
-        <div class="form-group">
-          <label for="password" class="mc-label">Password</label>
-          <input 
-            id="password" 
-            v-model="password" 
-            type="password" 
-            class="mc-input"
-            placeholder="Enter admin password"
-            required
-            ref="passwordInput"
-          />
-        </div>
+    <div v-if="!isAuthenticated" class="h-full w-full flex flex-col items-center justify-center p-6 login-container z-10 relative">
+      <div class="mc-container w-full max-w-sm backdrop-blur-xl bg-black/40 border border-white/10 shadow-2xl p-6 rounded-2xl animate-fade-in">
+        <h2 class="mc-title text-center text-2xl mb-6">Admin Access</h2>
         
-        <div v-if="authError" class="bg-red-500/50 text-white p-3 rounded-md">
-          {{ authError }}
-        </div>
-        
-        <div class="text-center">
-          <button type="submit" class="mc-button w-full">
+        <form @submit.prevent="authenticate" class="space-y-5">
+          <div class="space-y-2">
+            <label for="password" class="text-sm font-medium text-gray-300">Password</label>
+            <input 
+              id="password" 
+              v-model="password" 
+              type="password" 
+              class="w-full bg-black/50 border border-white/20 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all placeholder-gray-500"
+              placeholder="Enter admin password"
+              required
+              ref="passwordInput"
+            />
+          </div>
+          
+          <div v-if="authError" class="bg-red-500/20 border border-red-500/50 text-red-200 text-sm p-3 rounded-lg flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+            </svg>
+            {{ authError }}
+          </div>
+          
+          <button type="submit" class="w-full bg-primary-600 hover:bg-primary-500 text-white font-bold py-3 px-4 rounded-lg shadow-lg transform transition active:scale-95 duration-200">
             Login
           </button>
-        </div>
-      </form>
+        </form>
+      </div>
     </div>
     
     <!-- Admin Dashboard -->
-    <div v-else class="absolute inset-0 flex flex-col">
-      <!-- Fixed top bar -->
-      <div class="flex justify-between items-center px-4 py-3 bg-minecraft-deepslate/90 sticky top-0 z-20">
-        <h2 class="mc-title mb-0">Applications Dashboard</h2>
+    <div v-else class="h-full flex flex-col relative z-10" ref="adminContainerRef">
+      <!-- Header -->
+      <header class="bg-black/80 backdrop-blur-md border-b border-white/10 px-4 py-3 flex items-center justify-between shrink-0 z-30">
+        <div class="flex items-center gap-2">
+          <h2 class="font-pixel text-xl text-primary-400 m-0 leading-none">Dashboard</h2>
+          <span class="text-xs bg-white/10 px-2 py-0.5 rounded text-gray-400 font-mono">{{ totalApplications }}</span>
+        </div>
         
-        <div class="flex flex-wrap gap-2">
-          <button @click="refreshData" class="mc-button text-sm flex-1">
-            <span v-if="isLoading">Loading...</span>
-            <span v-else>Refresh</span>
+        <div class="flex items-center gap-2">
+          <button @click="toggleSearch" class="p-2 rounded-full hover:bg-white/10 text-gray-300 active:bg-white/20 transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
           </button>
           
-          <button @click="exportToCsv" class="mc-button text-sm flex-1">
-            Export CSV
-          </button>
-          
-          <button @click="logout" class="mc-button text-sm bg-red-500 hover:bg-red-600 border-red-700 flex-1">
-            Logout
-          </button>
-        </div>
-      </div>
-      
-      <!-- Search / Filters removed in favor of floating panel -->
-      
-      <div v-if="errorMessage" class="bg-red-500/50 text-white p-3 mx-4 my-2 rounded-md">
-        {{ errorMessage }}
-      </div>
-      
-      <!-- Scrollable content area -->
-      <div class="flex-grow overflow-auto p-2 bg-black/60">
-        <div v-if="applications.length === 0 && !isLoading" class="text-center py-10 text-white flex-grow flex items-center justify-center">
-          <div>
-            <p class="text-xl font-minecraft">No applications yet</p>
-            <p class="mt-2">Applications will appear here once submitted</p>
-          </div>
-        </div>
-        
-        <div v-else class="space-y-2">
-          <div 
-            v-for="(app, index) in filteredApplications" 
-            :key="app.id"
-            class="application-card bg-black/70 border border-minecraft-stone rounded-md p-3"
-            :class="{'bg-minecraft-important-red/10': !app.isReviewed}"
-          >
-            <!-- Header -->
-            <div class="flex items-center justify-between mb-2">
-              <div class="flex items-center gap-2">
-                <span v-if="!app.isReviewed" class="review-star animate-pulse text-minecraft-important-red">⭐</span>
-                <span class="font-minecraft" :class="{'text-minecraft-important-red': !app.isReviewed, 'text-white': app.isReviewed}">
-                  #{{ app.id }}
-                </span>
-              </div>
-              <span 
-                :class="app.joinedDiscord ? 'bg-minecraft-green' : 'bg-red-500'" 
-                class="px-2 py-1 rounded-full text-xs"
-              >
-                {{ app.joinedDiscord ? 'Yes' : 'No' }}
-              </span>
-            </div>
+          <div class="relative">
+            <button @click="toggleMenu" class="p-2 rounded-full hover:bg-white/10 text-gray-300 active:bg-white/20 transition-colors">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+              </svg>
+            </button>
             
-            <!-- Player Info -->
-            <div class="space-y-1 mb-2">
-              <div class="flex items-center gap-2">
-                <span class="text-minecraft-gold">DC:</span>
-                <span :class="{'text-minecraft-important-red': !app.isReviewed, 'text-white': app.isReviewed}">
-                  {{ app.discordUsername }}
-                </span>
-              </div>
-              <div class="flex items-center gap-2">
-                <span class="text-minecraft-gold">MC:</span>
-                <span 
-                  class="cursor-pointer hover:text-minecraft-gold transition-colors duration-150"
-                  :class="{'text-minecraft-important-red': !app.isReviewed, 'text-white': app.isReviewed, 'copied': app.minecraftUsername === lastCopiedUsername}"
-                  @click="copyToClipboard(app.minecraftUsername)"
-                >
-                  {{ app.minecraftUsername }}
-                  <span class="copy-icon ml-1 opacity-0 group-hover:opacity-100">📋</span>
-                </span>
-              </div>
-              <div class="flex items-center gap-2">
-                <span class="text-minecraft-gold">Age:</span>
-                <span :class="getAgeColor(app.age)" class="font-bold">
-                  {{ app.age }}
-                </span>
-              </div>
-            </div>
-            
-            <!-- Application Content -->
-            <div class="space-y-2">
-              <div>
-                <span class="text-minecraft-gold block mb-1">FAM:</span>
-                <p class="text-sm" :class="{'text-minecraft-important-red': !app.isReviewed, 'text-white': app.isReviewed}">
-                  {{ app.favoriteAboutMinecraft }}
-                </p>
-              </div>
-              <div>
-                <span class="text-minecraft-gold block mb-1">SU:</span>
-                <p class="text-sm" :class="{'text-minecraft-important-red': !app.isReviewed, 'text-white': app.isReviewed}">
-                  {{ app.understandingOfSMP }}
-                </p>
-              </div>
-            </div>
-            
-            <!-- Date and Status -->
-            <div class="mt-2 pt-2 border-t border-minecraft-stone/40">
-              <div class="text-xs" :class="{'text-minecraft-important-red': !app.isReviewed, 'text-white': app.isReviewed}">
-                Submitted: {{ formatDate(app.submissionDate) }}
-              </div>
-              <div v-if="app.isReviewed" class="text-xs text-green-500">
-                Reviewed: {{ formatDate(app.reviewedAt) }}
-              </div>
-              <div v-if="app.isReviewed && app.acceptanceStatus" class="mt-1">
-                <span 
-                  class="text-xs px-2 py-0.5 rounded-full"
-                  :class="{
-                    'bg-green-600 text-white': app.acceptanceStatus === 'accepted',
-                    'bg-red-600 text-white': app.acceptanceStatus === 'rejected',
-                    'bg-yellow-600 text-white': app.acceptanceStatus === 'pending'
-                  }"
-                >
-                  {{ app.acceptanceStatus === 'accepted' ? 'Accepted' : 
-                     app.acceptanceStatus === 'rejected' ? 'Rejected' : 'Pending' }}
-                </span>
-              </div>
-            </div>
-            
-            <!-- Actions -->
-            <div class="flex flex-wrap gap-2 mt-3">
-              <button 
-                v-if="!app.isReviewed"
-                @click="openReviewModal(app)"
-                class="mc-button text-xs bg-green-600 hover:bg-green-700 border-green-800 px-2 py-1 review-btn animate-pulse flex-1"
-                :disabled="isProcessing === app.id"
-              >
-                <span v-if="isProcessing === app.id">...</span>
-                <span v-else>Review</span>
-              </button>
-              
-              <button 
-                v-if="app.isReviewed"
-                @click="confirmUnreview(app.id)"
-                class="mc-button text-xs bg-minecraft-important-red hover:bg-red-700 border-red-800 px-2 py-1 flex-1"
-                :disabled="isProcessing === app.id"
-              >
-                <span v-if="isProcessing === app.id">...</span>
-                <span v-else>Unreview</span>
-              </button>
-              
-              <button 
-                @click="confirmDelete(app.id)"
-                class="mc-button text-xs bg-red-500 hover:bg-red-600 border-red-700 px-2 py-1 flex-1"
-                :disabled="isDeleting === app.id"
-              >
-                <span v-if="isDeleting === app.id">...</span>
-                <span v-else>Delete</span>
-              </button>
-              
-              <button 
-                v-if="app.isReviewed && app.reviewNotes"
-                @click="showNotes(app)"
-                class="mc-button text-xs bg-minecraft-deepslate hover:bg-gray-700 border-gray-800 px-2 py-1 flex-1"
-              >
-                Notes
-              </button>
-            </div>
-          </div>
-
-          <!-- Infinite Scroll Loading Indicator -->
-          <div v-if="isLoadingMore" class="mt-4 text-center py-4">
-            <div class="text-sm text-neutral-300">Loading more applications...</div>
-          </div>
-
-          <!-- End of results indicator -->
-          <div v-else-if="applications.length > 0 && applications.length >= totalApplications" class="mt-4 text-center py-4">
-            <div class="text-sm text-neutral-400">
-              Showing all {{ totalApplications }} applications
-              <span v-if="searchQuery.trim()" class="ml-2 text-primary-400">(filtered)</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    
-    <!-- Floating Search Panel -->
-    <Teleport to="body">
-      <Transition name="slide-up">
-        <div v-if="showSearchPanel" class="fixed inset-x-0 bottom-0 z-[9999] px-4 pb-6 pointer-events-none">
-          <div class="mx-auto max-w-2xl pointer-events-auto">
-            <div class="mc-container bg-black/80 border border-white/10 rounded-xl shadow-xl">
-              <div class="flex items-center justify-between mb-3">
-                <h3 class="mc-title text-base mb-0">Search</h3>
-                <button @click="closeSearchPanel" class="text-white hover:text-red-400 transition">✕</button>
-              </div>
-              <div class="flex items-center gap-3">
-                <input
-                  ref="searchInputRef"
-                  v-model="searchQuery"
-                  type="text"
-                  class="mc-input flex-1"
-                  placeholder="Type to search... (Esc to close)"
-                />
-              </div>
-              <div class="flex flex-wrap gap-4 mt-3 text-xs text-neutral-200">
-                <label class="flex items-center gap-1">
-                  <input type="checkbox" v-model="searchFields.discordUsername" />
-                  <span>Discord</span>
-                </label>
-                <label class="flex items-center gap-1">
-                  <input type="checkbox" v-model="searchFields.minecraftUsername" />
-                  <span>Minecraft</span>
-                </label>
-                <label class="flex items-center gap-1">
-                  <input type="checkbox" v-model="searchFields.favoriteAboutMinecraft" />
-                  <span>FAM</span>
-                </label>
-                <label class="flex items-center gap-1">
-                  <input type="checkbox" v-model="searchFields.understandingOfSMP" />
-                  <span>SU</span>
-                </label>
-                <label class="flex items-center gap-1">
-                  <input type="checkbox" v-model="searchFields.id" />
-                  <span>#</span>
-                </label>
-              </div>
-            </div>
-          </div>
-        </div>
-      </Transition>
-    </Teleport>
-    
-    <!-- Review Modal -->
-    <div v-if="showReviewModal" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-      <div class="mc-container w-full animate-scale-in">
-        <div class="flex justify-between items-center mb-4">
-          <h3 class="mc-title text-lg">Review Application</h3>
-          <button @click="showReviewModal = false" class="text-white hover:text-red-500 transition">✕</button>
-        </div>
-        
-        <div v-if="selectedApplication" class="mb-4">
-          <!-- Player Info Panel -->
-          <div class="bg-minecraft-deepslate/40 rounded-md p-4 mb-4 border border-minecraft-stone/50">
-            <p class="text-white">
-              <span class="font-minecraft">Player:</span> 
-              {{ selectedApplication.minecraftUsername }} 
-              <span class="text-gray-400">({{ selectedApplication.discordUsername }})</span>
-            </p>
-          </div>
-
-          <div class="flex flex-col gap-4">
-            <!-- Notes Panel -->
-            <div class="bg-minecraft-deepslate/40 rounded-md p-4 border border-minecraft-stone/50">
-              <label class="mc-label block mb-2">Review Notes</label>
-              <textarea 
-                v-model="reviewNotes" 
-                class="mc-input w-full bg-black/30" 
-                rows="4"
-                placeholder="Enter notes about this application (optional)"
-              ></textarea>
-            </div>
-
-            <!-- Status Panel -->
-            <div class="bg-minecraft-deepslate/40 rounded-md p-4 border border-minecraft-stone/50">
-              <label class="mc-label block mb-2">Status</label>
-              <div class="flex gap-2">
-                <button 
-                  v-for="status in ['accepted', 'pending', 'rejected']"
-                  :key="status"
-                  @click="setAcceptanceStatus(status)"
-                  class="flex-1 mc-button"
-                  :class="{
-                    'bg-green-600 hover:bg-green-700 border-green-800': status === 'accepted',
-                    'bg-yellow-600 hover:bg-yellow-700 border-yellow-800': status === 'pending',
-                    'bg-red-600 hover:bg-red-700 border-red-800': status === 'rejected'
-                  }"
-                >
-                  {{ status.charAt(0).toUpperCase() + status.slice(1) }}
+            <!-- Dropdown Menu -->
+            <div v-if="showMenu" class="absolute right-0 top-full mt-2 w-48 bg-neutral-900 border border-white/10 rounded-xl shadow-xl overflow-hidden z-50 animate-scale-in origin-top-right">
+              <div class="py-1">
+                <button @click="refreshData(); showMenu = false" class="w-full text-left px-4 py-3 hover:bg-white/5 flex items-center gap-2 text-sm">
+                  <span v-if="isLoading" class="animate-spin">⟳</span>
+                  <span v-else>↻</span>
+                  Refresh Data
+                </button>
+                <button @click="exportToCsv(); showMenu = false" class="w-full text-left px-4 py-3 hover:bg-white/5 flex items-center gap-2 text-sm">
+                  <span>⬇</span> Export CSV
+                </button>
+                <div class="h-px bg-white/10 my-1"></div>
+                <button @click="logout" class="w-full text-left px-4 py-3 hover:bg-red-500/20 text-red-400 flex items-center gap-2 text-sm">
+                  <span>➜</span> Logout
                 </button>
               </div>
             </div>
+            <!-- Backdrop for menu -->
+            <div v-if="showMenu" @click="showMenu = false" class="fixed inset-0 z-40 bg-transparent"></div>
+          </div>
+        </div>
+      </header>
+      
+      <!-- Search Bar (Expandable) -->
+      <div v-if="showSearch" class="bg-black/60 border-b border-white/10 px-4 py-3 animate-slide-down shrink-0">
+        <div class="relative">
+          <input 
+            v-model="searchQuery" 
+            ref="searchInput"
+            class="w-full bg-black/40 border border-white/20 rounded-lg pl-9 pr-4 py-2 text-sm focus:outline-none focus:border-primary-500/50 focus:ring-1 focus:ring-primary-500/50 transition-all"
+            placeholder="Search username, discord..." 
+          />
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <button v-if="searchQuery" @click="searchQuery = ''" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-white">
+            ✕
+          </button>
+        </div>
+        <!-- Search filters chips -->
+        <div class="flex gap-2 mt-2 overflow-x-auto pb-1 hide-scrollbar">
+           <label v-for="(enabled, field) in searchFields" :key="field" 
+                  class="flex-shrink-0 text-xs px-2 py-1 rounded-full border cursor-pointer select-none transition-colors"
+                  :class="enabled ? 'bg-primary-500/20 border-primary-500/40 text-primary-200' : 'bg-white/5 border-white/10 text-gray-400'">
+             <input type="checkbox" v-model="searchFields[field]" class="hidden">
+             {{ formatFieldName(field) }}
+           </label>
+        </div>
+      </div>
+      
+      <!-- Error Message -->
+      <div v-if="errorMessage" class="bg-red-900/50 border-l-4 border-red-500 text-white p-3 mx-4 my-2 text-sm rounded shadow-lg backdrop-blur shrink-0 animate-fade-in">
+        <div class="flex justify-between items-start">
+          <span>{{ errorMessage }}</span>
+          <button @click="errorMessage = ''" class="text-white/60 hover:text-white">×</button>
+        </div>
+      </div>
+      
+      <!-- List Content -->
+      <div class="flex-grow overflow-y-auto overflow-x-hidden p-4 space-y-3" @scroll="handleScroll">
+        <!-- Loading Initial -->
+        <div v-if="isLoading && applications.length === 0" class="flex flex-col items-center justify-center p-12 text-gray-400">
+           <div class="animate-spin h-8 w-8 border-2 border-primary-500 border-t-transparent rounded-full mb-3"></div>
+           <span class="text-sm">Loading applications...</span>
+        </div>
+        
+        <!-- Empty State -->
+        <div v-if="applications.length === 0 && !isLoading" class="flex flex-col items-center justify-center h-64 text-center text-gray-400">
+          <div class="bg-white/5 p-4 rounded-full mb-3">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+          </div>
+          <p class="font-medium">No applications found</p>
+          <p class="text-xs mt-1 opacity-60">Try adjusting your search filters</p>
+        </div>
+        
+        <!-- Cards -->
+        <div 
+          v-for="app in filteredApplications" 
+          :key="app.id"
+          class="application-card bg-neutral-800/60 border border-white/5 rounded-xl p-4 shadow-sm backdrop-blur-sm active:bg-neutral-800 transition-colors"
+          :class="{
+            'border-l-4 border-l-yellow-500': !app.isReviewed,
+            'border-l-4 border-l-green-500': app.isReviewed && app.acceptanceStatus === 'accepted',
+            'border-l-4 border-l-red-500': app.isReviewed && app.acceptanceStatus === 'rejected',
+            'border-l-4 border-l-orange-500': app.isReviewed && app.acceptanceStatus === 'pending',
+          }"
+        >
+          <!-- Card Header: ID & Status -->
+          <div class="flex justify-between items-start mb-2">
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-mono text-gray-400">#{{ app.id }}</span>
+              <span v-if="!app.isReviewed" class="text-[10px] bg-yellow-500/20 text-yellow-300 px-1.5 py-0.5 rounded uppercase tracking-wider font-bold">New</span>
+              <span v-else class="text-[10px] px-1.5 py-0.5 rounded uppercase tracking-wider font-bold"
+                :class="{
+                  'bg-green-500/20 text-green-300': app.acceptanceStatus === 'accepted',
+                  'bg-red-500/20 text-red-300': app.acceptanceStatus === 'rejected',
+                  'bg-orange-500/20 text-orange-300': app.acceptanceStatus === 'pending'
+                }"
+              >
+                {{ app.acceptanceStatus }}
+              </span>
+            </div>
+            <span class="text-xs text-gray-500">{{ formatDate(app.submissionDate) }}</span>
+          </div>
+          
+          <!-- Players Details -->
+          <div class="flex items-center gap-3 mb-3">
+             <div class="h-10 w-10 rounded bg-neutral-700 flex items-center justify-center shrink-0">
+               <!-- Minecraft Head Placeholder / Initials -->
+               <span class="font-pixel text-lg">{{ app.minecraftUsername.charAt(0).toUpperCase() }}</span>
+             </div>
+             <div class="overflow-hidden">
+               <div class="flex items-center gap-1.5" @click="copyToClipboard(app.minecraftUsername)">
+                 <h3 class="font-bold text-white truncate">{{ app.minecraftUsername }}</h3>
+                 <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
+                   <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" />
+                   <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z" />
+                 </svg>
+                 <!-- Copied tooltip could go here -->
+               </div>
+               <div class="flex items-center gap-2 text-xs text-gray-400">
+                 <span class="flex items-center gap-1">
+                   <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 0-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 0 .032-.055c3.962 1.82 8.24 1.82 12.16 0a.074.074 0 0 0 .032.055 10.5 10.5 0 0 0 .372.292.077.077 0 0 0-.008.128 12.532 12.532 0 0 1-1.872.892.077.077 0 0 0-.041.106c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.9 19.9 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z"/></svg>
+                   {{ app.discordUsername }}
+                 </span>
+                 <span>•</span>
+                 <span :class="getAgeColor(app.age)">{{ app.age }} y/o</span>
+               </div>
+             </div>
+          </div>
+          
+          <!-- Q&A Preview -->
+          <div class="space-y-2 mb-4 bg-black/20 p-2 rounded text-xs text-gray-300">
+            <div>
+              <span class="text-primary-400 font-bold uppercase text-[10px]">Favorite Thing</span>
+              <p class="line-clamp-2 leading-relaxed">{{ app.favoriteAboutMinecraft }}</p>
+            </div>
+            <div>
+              <span class="text-primary-400 font-bold uppercase text-[10px]">SMP Understanding</span>
+              <p class="line-clamp-2 leading-relaxed">{{ app.understandingOfSMP }}</p>
+            </div>
+          </div>
+          
+          <!-- Actions -->
+          <div class="grid grid-cols-2 gap-2">
+            <button 
+              @click="openReviewModal(app)" 
+              class="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-bold transition-all"
+              :class="app.isReviewed ? 'bg-neutral-700 text-white hover:bg-neutral-600' : 'bg-green-600 text-white hover:bg-green-500 shadow-lg shadow-green-900/20'"
+            >
+              <span v-if="app.isReviewed">Edit Review</span>
+              <span v-else>Review App</span>
+            </button>
+            
+            <button 
+              @click="confirmDelete(app.id)"
+              class="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 text-xs font-bold transition-all"
+            >
+              Delete
+            </button>
           </div>
         </div>
         
-        <!-- Action Buttons Panel -->
-        <div class="flex justify-center gap-2 bg-minecraft-deepslate/40 rounded-md p-4 border border-minecraft-stone/50 mt-2">
-          <button @click="showReviewModal = false" class="mc-button bg-gray-600 hover:bg-gray-700 border-gray-800 flex-1">
-            Cancel
-          </button>
-          <button 
-            @click="submitReview"
-            class="mc-button bg-green-600 hover:bg-green-700 border-green-800 flex-1"
-            :disabled="isSubmittingReview"
-          >
-            <span v-if="isSubmittingReview">Submitting...</span>
-            <span v-else>Submit Review</span>
-          </button>
+        <!-- Loading More -->
+        <div v-if="isLoadingMore" class="flex justify-center py-4">
+          <div class="h-6 w-6 border-2 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
+        </div>
+        
+         <!-- End of Results -->
+        <div v-if="applications.length > 0 && applications.length >= totalApplications" class="text-center py-4 text-xs text-gray-600">
+          All applications loaded
         </div>
       </div>
     </div>
-    
-    <!-- Notes Modal -->
-    <div v-if="showNotesModal" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-      <div class="mc-container w-full animate-scale-in">
-        <div class="flex justify-between items-center mb-4">
-          <h3 class="mc-title text-lg">Review Notes</h3>
-          <button @click="showNotesModal = false" class="text-white hover:text-red-500 transition">✕</button>
-        </div>
+
+    <!-- Review Modal -->
+    <Transition name="fade">
+      <div v-if="showReviewModal" class="fixed inset-0 z-[100] flex items-end sm:items-center justify-center" role="dialog">
+        <!-- Backdrop -->
+        <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" @click="showReviewModal = false"></div>
         
-        <div v-if="selectedApplication" class="mb-4">
-          <p class="text-white mb-2">
-            <span class="font-minecraft">Player:</span> 
-            {{ selectedApplication.minecraftUsername }} ({{ selectedApplication.discordUsername }})
-          </p>
-          
-          <div class="bg-black/50 p-4 rounded-md border border-minecraft-stone">
-            <p class="text-white whitespace-pre-line">{{ selectedApplication.reviewNotes || 'No notes provided.' }}</p>
-          </div>
-          
-          <p class="text-xs text-minecraft-gold mt-2">
-            Reviewed on: {{ formatDate(selectedApplication.reviewedAt, true) }}
-          </p>
-        </div>
-        
-        <div class="flex justify-end">
-          <button @click="showNotesModal = false" class="mc-button w-full">
-            Close
-          </button>
+        <!-- Modal Content -->
+        <div class="relative w-full sm:w-[500px] bg-[#1a1a1a] sm:rounded-xl rounded-t-xl border-t sm:border border-white/10 shadow-2xl flex flex-col max-h-[90vh] animate-slide-up">
+           <!-- Modal Header -->
+           <div class="px-5 py-4 border-b border-white/5 flex justify-between items-center shrink-0">
+             <h3 class="text-lg font-bold text-white">Review Application</h3>
+             <button @click="showReviewModal = false" class="text-gray-400 hover:text-white p-1">✕</button>
+           </div>
+           
+           <!-- Modal Body (Scrollable) -->
+           <div class="p-5 overflow-y-auto custom-scrollbar space-y-5">
+             <div v-if="selectedApplication">
+               <div class="flex items-center gap-3 p-3 bg-white/5 rounded-lg border border-white/5">
+                 <div class="h-10 w-10 bg-primary-900/50 rounded flex items-center justify-center text-primary-300 font-bold">
+                   {{ selectedApplication.minecraftUsername.charAt(0).toUpperCase() }}
+                 </div>
+                 <div>
+                   <div class="text-white font-bold">{{ selectedApplication.minecraftUsername }}</div>
+                   <div class="text-xs text-gray-400">{{ selectedApplication.discordUsername }}</div>
+                 </div>
+               </div>
+               
+               <!-- Full Content View for Context -->
+               <div class="space-y-3 mt-4">
+                  <div>
+                    <span class="text-xs uppercase text-gray-500 font-bold tracking-wider">Favorite Thing About MC</span>
+                    <p class="text-sm text-gray-300 mt-1 p-3 bg-black/30 rounded-lg border border-white/5">{{ selectedApplication.favoriteAboutMinecraft }}</p>
+                  </div>
+                  <div>
+                    <span class="text-xs uppercase text-gray-500 font-bold tracking-wider">Understanding of SMP</span>
+                    <p class="text-sm text-gray-300 mt-1 p-3 bg-black/30 rounded-lg border border-white/5">{{ selectedApplication.understandingOfSMP }}</p>
+                  </div>
+               </div>
+
+               <!-- Status Selection -->
+               <div class="mt-4">
+                 <label class="block text-xs uppercase text-gray-500 font-bold tracking-wider mb-2">Decision</label>
+                 <div class="grid grid-cols-3 gap-2">
+                    <button @click="setAcceptanceStatus('accepted')" 
+                      class="py-2.5 rounded-lg border text-sm font-bold transition-all"
+                      :class="acceptanceStatus === 'accepted' ? 'bg-green-600 border-green-500 text-white' : 'bg-transparent border-white/10 text-gray-400 hover:bg-white/5'">
+                      Accept
+                    </button>
+                    <button @click="setAcceptanceStatus('pending')" 
+                      class="py-2.5 rounded-lg border text-sm font-bold transition-all"
+                      :class="acceptanceStatus === 'pending' ? 'bg-orange-600 border-orange-500 text-white' : 'bg-transparent border-white/10 text-gray-400 hover:bg-white/5'">
+                      Pending
+                    </button>
+                    <button @click="setAcceptanceStatus('rejected')" 
+                      class="py-2.5 rounded-lg border text-sm font-bold transition-all"
+                      :class="acceptanceStatus === 'rejected' ? 'bg-red-600 border-red-500 text-white' : 'bg-transparent border-white/10 text-gray-400 hover:bg-white/5'">
+                      Reject
+                    </button>
+                 </div>
+               </div>
+
+               <!-- Notes -->
+               <div class="mt-4">
+                 <label class="block text-xs uppercase text-gray-500 font-bold tracking-wider mb-2">Internal Notes</label>
+                 <textarea 
+                   v-model="reviewNotes"
+                   rows="3" 
+                   class="w-full bg-black/30 border border-white/10 rounded-lg p-3 text-sm text-white focus:outline-none focus:border-primary-500/50"
+                   placeholder="Add notes privately..."
+                 ></textarea>
+               </div>
+
+               <!-- Unreview Action -->
+               <div v-if="selectedApplication.isReviewed" class="mt-4 pt-4 border-t border-white/5">
+                 <button 
+                   @click="unreviewApplication"
+                   class="text-xs text-red-400 hover:text-red-300 flex items-center gap-1"
+                   :disabled="isUnreviewing"
+                 >
+                   <span v-if="isUnreviewing">Processing...</span>
+                   <span v-else>Reset Application Status (Unreview)</span>
+                 </button>
+               </div>
+             </div>
+           </div>
+           
+           <!-- Modal Footer -->
+           <div class="p-4 border-t border-white/5 bg-neutral-900/50 shrink-0 flex gap-3">
+             <button @click="showReviewModal = false" class="flex-1 py-3 rounded-lg text-gray-400 hover:bg-white/5 text-sm font-bold">Cancel</button>
+             <button 
+               @click="submitReview" 
+               class="flex-[2] py-3 rounded-lg bg-white text-black hover:bg-gray-200 text-sm font-bold shadow-lg flex justify-center items-center"
+               :disabled="isSubmittingReview"
+             >
+               <span v-if="isSubmittingReview" class="animate-spin mr-2 h-4 w-4 border-2 border-black border-t-transparent rounded-full"></span>
+               {{ isSubmittingReview ? 'Saving...' : 'Save Decision' }}
+             </button>
+           </div>
         </div>
       </div>
-    </div>
+    </Transition>
+
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, nextTick, inject, computed, watch } from 'vue';
+import { ref, nextTick, inject, computed } from 'vue';
 import { gsap } from 'gsap';
 import api from '../services/api';
-import { useRouter } from 'vue-router';
 
-const router = useRouter();
 const confirmation = inject('confirmation');
 
 // UI state
@@ -376,6 +350,8 @@ const isLoading = ref(true);
 const isLoadingMore = ref(false);
 const errorMessage = ref('');
 const applications = ref([]);
+const showMenu = ref(false);
+const showSearch = ref(false);
 
 // Pagination state
 const currentPage = ref(1);
@@ -387,7 +363,6 @@ const totalPages = ref(0);
 const isAuthenticated = ref(false);
 const password = ref('');
 const authError = ref('');
-const passwordInput = ref(null);
 const authenticatedPassword = ref('');
 const adminContainerRef = ref(null);
 const isDeleting = ref(null);
@@ -399,15 +374,11 @@ const selectedApplication = ref(null);
 const reviewNotes = ref('');
 const acceptanceStatus = ref('pending');
 const isSubmittingReview = ref(false);
-
-// Notes modal state
-const showNotesModal = ref(false);
-
-// Clipboard state
-const lastCopiedUsername = ref('');
+const isUnreviewing = ref(false);
 
 // Search state
 const searchQuery = ref('');
+const searchInput = ref(null);
 const searchFields = ref({
   discordUsername: true,
   minecraftUsername: true,
@@ -415,46 +386,35 @@ const searchFields = ref({
   understandingOfSMP: false,
   id: false
 });
-const showSearchPanel = ref(false);
-const searchInputRef = ref(null);
 
-function fuzzyIncludes(haystack, needle) {
-  if (!needle) return true;
-  const h = String(haystack ?? '').toLowerCase();
-  const n = String(needle).toLowerCase();
-  let i = 0;
-  for (let c of n) {
-    i = h.indexOf(c, i);
-    if (i === -1) return false;
-    i++;
-  }
-  return true;
+// Format field names for display
+function formatFieldName(field) {
+  const map = {
+    discordUsername: 'Discord',
+    minecraftUsername: 'IGN',
+    favoriteAboutMinecraft: 'Favorite',
+    understandingOfSMP: 'Understanding',
+    id: 'ID'
+  };
+  return map[field] || field;
 }
 
-// Filtered applications - now handled server-side, just return applications
 const filteredApplications = computed(() => {
   return applications.value;
 });
 
-function openSearchPanel() {
-  showSearchPanel.value = true;
-  nextTick(() => {
-    if (searchInputRef.value) searchInputRef.value.focus();
-  });
+function toggleMenu() {
+  showMenu.value = !showMenu.value;
 }
 
-function closeSearchPanel() {
-  showSearchPanel.value = false;
-}
-
-function handleGlobalKeydown(e) {
-  const isCmd = e.metaKey || e.ctrlKey;
-  if (isCmd && (e.key === 'f' || e.key === 'F')) {
-    e.preventDefault();
-    openSearchPanel();
-  } else if (e.key === 'Escape' && showSearchPanel.value) {
-    e.preventDefault();
-    closeSearchPanel();
+function toggleSearch() {
+  showSearch.value = !showSearch.value;
+  if(showSearch.value) {
+    nextTick(() => {
+      searchInput.value?.focus();
+    });
+  } else {
+    searchQuery.value = '';
   }
 }
 
@@ -468,7 +428,7 @@ async function authenticate() {
       
       gsap.to('.login-container', {
         opacity: 0,
-        scale: 0.95,
+        y: -20,
         duration: 0.3,
         onComplete: () => {
           isAuthenticated.value = true;
@@ -476,61 +436,56 @@ async function authenticate() {
           authError.value = '';
           
           nextTick(() => {
-            if (adminContainerRef.value) {
-              gsap.from(adminContainerRef.value, {
-                opacity: 0,
-                scale: 0.98,
-                duration: 0.4,
-                ease: 'power2.out'
-              });
-            }
-            
             refreshData();
           });
         }
       });
     } else {
       authError.value = 'Invalid password';
-      
-      gsap.to('.login-container', {
-        x: [-10, 10, -10, 10, -5, 5, -2, 2, 0],
-        duration: 0.5,
-        ease: 'power2.out'
-      });
+      gsap.fromTo('.login-container', { x: -5 }, { x: 5, duration: 0.1, repeat: 3, yoyo: true });
     }
   } catch (error) {
     authError.value = 'Authentication error. Please try again.';
   }
 }
 
-// Get age display color
 function getAgeColor(age) {
-  if (age < 13) return 'text-red-500';
+  if (age < 13) return 'text-red-400';
   if (age < 16) return 'text-yellow-400';
   if (age < 18) return 'text-green-400';
   return 'text-white';
 }
 
-// Open review modal
+function formatDate(dateString, includeTime = false) {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  if (includeTime) {
+    return date.toLocaleString();
+  }
+  return date.toLocaleDateString();
+}
+
+async function copyToClipboard(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    // Could add a toast notification here
+  } catch (err) {
+    console.error('Failed to copy', err);
+  }
+}
+
 function openReviewModal(application) {
   selectedApplication.value = application;
-  reviewNotes.value = '';
+  reviewNotes.value = application.reviewNotes || '';
   acceptanceStatus.value = application.acceptanceStatus || 'pending';
   showReviewModal.value = true;
+  showMenu.value = false; // close menu if open
 }
 
-// Show notes modal
-function showNotes(application) {
-  selectedApplication.value = application;
-  showNotesModal.value = true;
-}
-
-// Set acceptance status
 function setAcceptanceStatus(status) {
   acceptanceStatus.value = status;
 }
 
-// Submit review
 async function submitReview() {
   if (!selectedApplication.value) return;
   
@@ -545,98 +500,61 @@ async function submitReview() {
       acceptanceStatus.value
     );
     
-    // Validate the response has the required structure
-    if (response && 
-        typeof response === 'object' && 
-        response.success === true && 
-        response.data && 
-        typeof response.data === 'object' && 
-        'id' in response.data && 
-        'isReviewed' in response.data && 
-        'reviewedAt' in response.data) {
-      
+    if (response && response.success) {
       const index = applications.value.findIndex(app => app.id === selectedApplication.value.id);
       if (index !== -1) {
-        // Ensure acceptanceStatus is set
-        if (!response.data.acceptanceStatus) {
-          response.data.acceptanceStatus = acceptanceStatus.value;
-        }
+        // Optimistic update
+        const updatedApp = { ...applications.value[index], ...response.data };
+        // Ensure status logic if backend didn't return it perfectly immediately (safety)
+        if (!updatedApp.acceptanceStatus) updatedApp.acceptanceStatus = acceptanceStatus.value;
         
-        applications.value[index] = response.data;
-        
-        nextTick(() => {
-          const cards = document.querySelectorAll('.application-card');
-          if (cards[index]) {
-            gsap.fromTo(cards[index], 
-              { backgroundColor: 'rgba(50, 205, 50, 0.3)' },
-              { backgroundColor: '', duration: 1.5, ease: 'power2.out' }
-            );
-          }
-        });
+        applications.value[index] = updatedApp;
       }
-      
       showReviewModal.value = false;
-    } else {
-      console.error('Invalid response structure:', response);
-      throw new Error('Invalid response from server');
     }
   } catch (error) {
     console.error('Error submitting review:', error);
-    errorMessage.value = 'Failed to review application. Please try again.';
+    errorMessage.value = 'Failed to submit review.';
   } finally {
     isSubmittingReview.value = false;
     isProcessing.value = null;
   }
 }
 
-// Confirm unreview
-async function confirmUnreview(applicationId) {
+async function unreviewApplication() {
+  if (!selectedApplication.value) return;
+  
   const confirmed = await confirmation.confirm({
-    title: 'Remove Review Status',
-    message: 'Are you sure you want to remove the reviewed status?',
-    confirmText: 'Remove',
-    cancelText: 'Keep'
+    title: 'Unreview Application',
+    message: 'Are you sure you want to reset the review status? This will mark it as new.',
+    confirmText: 'Reset',
+    cancelText: 'Cancel'
   });
   
-  if (confirmed) {
-    unreviewApplication(applicationId);
-  }
-}
+  if (!confirmed) return;
 
-// Unreview application
-async function unreviewApplication(applicationId) {
-  isProcessing.value = applicationId;
-  
+  isUnreviewing.value = true;
   try {
     const response = await api.unreviewApplication(
-      applicationId,
+      selectedApplication.value.id,
       authenticatedPassword.value
     );
     
     if (response.success) {
-      const index = applications.value.findIndex(app => app.id === applicationId);
-      if (index !== -1) {
-        applications.value[index] = response.data;
-        
-        nextTick(() => {
-          const cards = document.querySelectorAll('.application-card');
-          if (cards[index]) {
-            gsap.fromTo(cards[index], 
-              { backgroundColor: 'rgba(255, 82, 82, 0.3)' },
-              { backgroundColor: '', duration: 1, ease: 'power2.out' }
-            );
-          }
-        });
-      }
+       const index = applications.value.findIndex(app => app.id === selectedApplication.value.id);
+       if (index !== -1) {
+         applications.value[index] = response.data;
+       }
+       showReviewModal.value = false;
     }
-  } catch (error) {
-    errorMessage.value = 'Failed to unreview application. Please try again.';
+  } catch(error) {
+    console.error('Error unreviewing', error);
+    errorMessage.value = 'Failed to unreview application';
   } finally {
-    isProcessing.value = null;
+    isUnreviewing.value = false;
   }
 }
 
-// Confirm delete
 async function confirmDelete(applicationId) {
   const confirmed = await confirmation.confirm({
     title: 'Delete Application',
@@ -650,52 +568,37 @@ async function confirmDelete(applicationId) {
   }
 }
 
-// Delete application
 async function deleteApplication(applicationId) {
   isDeleting.value = applicationId;
-  
   try {
     const response = await api.deleteApplication(applicationId, authenticatedPassword.value);
-    
     if (response.success) {
-      const index = applications.value.findIndex(app => app.id === applicationId);
-      if (index !== -1) {
-        const cards = document.querySelectorAll('.application-card');
-        if (cards[index]) {
-          gsap.to(cards[index], {
-            opacity: 0,
-            height: 0,
-            paddingTop: 0,
-            paddingBottom: 0,
-            duration: 0.3,
-            onComplete: () => {
-              applications.value = applications.value.filter(app => app.id !== applicationId);
-            }
-          });
-        } else {
-          applications.value = applications.value.filter(app => app.id !== applicationId);
-        }
-      }
+      applications.value = applications.value.filter(app => app.id !== applicationId);
+      totalApplications.value--; 
     }
   } catch (error) {
-    errorMessage.value = 'Failed to delete application. Please try again.';
+    errorMessage.value = 'Failed to delete application.';
   } finally {
     isDeleting.value = null;
   }
 }
 
-// Fetch applications
-// Load initial data or refresh (replaces existing data)
+async function exportToCsv() {
+  try {
+    await api.exportApplications(authenticatedPassword.value);
+    showMenu.value = false;
+  } catch (error) {
+    errorMessage.value = 'Failed to export applications.';
+  }
+}
+
 async function refreshData() {
   isLoading.value = true;
   errorMessage.value = '';
-
-  // Reset to page 1
   currentPage.value = 1;
 
   try {
     const selectedFields = Object.keys(searchFields.value).filter(key => searchFields.value[key]);
-
     const response = await api.getApplications(
       authenticatedPassword.value,
       searchQuery.value,
@@ -705,66 +608,29 @@ async function refreshData() {
     );
 
     if (response && response.success) {
-      const oldLength = applications.value.length;
-      // Replace applications with new data (already sorted by backend)
       applications.value = response.data || [];
-
-      // Update pagination metadata
       totalApplications.value = response.total;
       totalPages.value = response.totalPages;
       currentPage.value = response.page;
       pageSize.value = response.pageSize;
-
-      if (oldLength === 0 && applications.value.length > 0) {
-        nextTick(() => {
-          const cards = document.querySelectorAll('.application-card');
-          if (cards.length > 0) {
-            gsap.from(cards, {
-              opacity: 0,
-              y: 20,
-              stagger: 0.05,
-              duration: 0.4,
-              ease: 'power2.out'
-            });
-          }
-        });
-      } else {
-        // Scroll to top when refreshing
-        nextTick(() => {
-          const container = document.querySelector('.overflow-auto');
-          if (container) {
-            container.scrollTo({ top: 0, behavior: 'smooth' });
-          }
-        });
-      }
-
-      // Attach scroll listener for infinite scroll
-      attachScrollListener();
     } else {
       applications.value = [];
     }
   } catch (error) {
-    console.error('Error fetching applications:', error);
-    errorMessage.value = 'Failed to fetch applications. Please try again.';
+    errorMessage.value = 'Failed to fetch applications.';
     applications.value = [];
   } finally {
     isLoading.value = false;
   }
 }
 
-// Load more applications for infinite scroll (appends to existing data)
 async function loadMoreApplications() {
-  // Don't load if already loading or if we've loaded all
-  if (isLoadingMore.value || currentPage.value >= totalPages.value) {
-    return;
-  }
-
+  if (isLoadingMore.value || currentPage.value >= totalPages.value) return;
   isLoadingMore.value = true;
-
+  
   try {
     const selectedFields = Object.keys(searchFields.value).filter(key => searchFields.value[key]);
     const nextPage = currentPage.value + 1;
-
     const response = await api.getApplications(
       authenticatedPassword.value,
       searchQuery.value,
@@ -774,161 +640,52 @@ async function loadMoreApplications() {
     );
 
     if (response.success) {
-      // Append new applications to existing list
       applications.value = [...applications.value, ...(response.data || [])];
-
-      // Update pagination metadata
-      totalApplications.value = response.total;
-      totalPages.value = response.totalPages;
       currentPage.value = response.page;
-      pageSize.value = response.pageSize;
     }
   } catch (error) {
-    console.error('Error loading more applications:', error);
+    console.error(error);
   } finally {
     isLoadingMore.value = false;
   }
 }
 
-// Infinite scroll handler
 function handleScroll(event) {
-  const container = event.target;
-  const scrollTop = container.scrollTop;
-  const scrollHeight = container.scrollHeight;
-  const clientHeight = container.clientHeight;
-
-  // Load more when user is within 300px of bottom
-  const threshold = 300;
-  if (scrollHeight - scrollTop - clientHeight < threshold) {
+  const { scrollTop, scrollHeight, clientHeight } = event.target;
+  if (scrollTop + clientHeight >= scrollHeight - 300) {
     loadMoreApplications();
   }
 }
 
-// Attach scroll listener
-let scrollContainer = null;
-function attachScrollListener() {
-  nextTick(() => {
-    scrollContainer = document.querySelector('.overflow-auto');
-    if (scrollContainer) {
-      scrollContainer.removeEventListener('scroll', handleScroll); // Remove existing first
-      scrollContainer.addEventListener('scroll', handleScroll);
-    }
-  });
+async function logout() {
+  isAuthenticated.value = false;
+  authenticatedPassword.value = '';
+  password.value = '';
+  applications.value = [];
 }
-
-// Detach scroll listener
-function detachScrollListener() {
-  if (scrollContainer) {
-    scrollContainer.removeEventListener('scroll', handleScroll);
-  }
-}
-
-// Debounced search
-let searchDebounceTimeout = null;
-function triggerSearch() {
-  // Clear existing timeout
-  if (searchDebounceTimeout) {
-    clearTimeout(searchDebounceTimeout);
-  }
-
-  // Set new timeout for 300ms - refreshData will reset to page 1
-  searchDebounceTimeout = setTimeout(() => {
-    refreshData();
-  }, 300);
-}
-
-// Watch for search query and field changes
-watch([searchQuery, searchFields], () => {
-  triggerSearch();
-}, { deep: true });
-
-// Export to CSV
-async function exportToCsv() {
-  try {
-    await api.exportApplications(authenticatedPassword.value);
-  } catch (error) {
-    errorMessage.value = 'Failed to export applications. Please try again.';
-  }
-}
-
-// Logout
-function logout() {
-  gsap.to(adminContainerRef.value, {
-    opacity: 0,
-    scale: 0.98,
-    duration: 0.3,
-    onComplete: () => {
-      isAuthenticated.value = false;
-      authenticatedPassword.value = '';
-      applications.value = [];
-      
-      nextTick(() => {
-        gsap.from('.login-container', {
-          opacity: 0,
-          scale: 0.95,
-          duration: 0.4,
-          ease: 'power2.out',
-          onComplete: () => {
-            if (passwordInput.value) {
-              passwordInput.value.focus();
-            }
-          }
-        });
-      });
-    }
-  });
-}
-
-// Copy to clipboard
-async function copyToClipboard(text) {
-  try {
-    await navigator.clipboard.writeText(text);
-    lastCopiedUsername.value = text;
-    
-    setTimeout(() => {
-      lastCopiedUsername.value = '';
-    }, 2000);
-  } catch (err) {
-    console.error('Failed to copy text: ', err);
-  }
-}
-
-// Format date for display
-function formatDate(dateString, includeTime = false) {
-  if (!dateString) return 'N/A';
-  
-  const date = new Date(dateString);
-  const options = { 
-    year: 'numeric', 
-    month: 'short', 
-    day: 'numeric',
-    ...(includeTime ? { hour: '2-digit', minute: '2-digit' } : {})
-  };
-  
-  return date.toLocaleDateString('en-US', options);
-}
-
-// Call refreshData on component mount
-onMounted(() => {
-  if (isAuthenticated.value) {
-    refreshData();
-  }
-  window.addEventListener('keydown', handleGlobalKeydown);
-});
-
-onUnmounted(() => {
-  window.removeEventListener('keydown', handleGlobalKeydown);
-  detachScrollListener();
-});
 </script>
 
 <style scoped>
-.animate-fade-in {
-  animation: fadeIn 0.5s ease-out;
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
+/* Animations */
+.animate-fade-in {
+  animation: fadeIn 0.4s ease-out;
+}
 .animate-scale-in {
-  animation: scaleIn 0.3s ease-out;
+  animation: scaleIn 0.2s ease-out;
+}
+.animate-slide-down {
+  animation: slideDown 0.2s ease-out;
+}
+.animate-slide-up {
+  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @keyframes fadeIn {
@@ -937,103 +694,27 @@ onUnmounted(() => {
 }
 
 @keyframes scaleIn {
-  from { 
-    opacity: 0; 
-    transform: scale(0.95);
-  }
-  to { 
-    opacity: 1;
-    transform: scale(1);
-  }
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
 }
 
-.review-star {
-  display: inline-block;
-  animation: pulse 1.5s infinite;
-  color: #ff5252;
-  text-shadow: 0 0 5px rgba(255, 82, 82, 0.7);
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes pulse {
-  0% {
-    opacity: 0.7;
-    transform: scale(0.95);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1.1);
-    text-shadow: 0 0 10px rgba(255, 82, 82, 0.9);
-  }
-  100% {
-    opacity: 0.7;
-    transform: scale(0.95);
-  }
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
 }
 
-.review-btn {
-  position: relative;
-  overflow: hidden;
-  box-shadow: 0 0 8px rgba(50, 205, 50, 0.5);
+/* Transitions */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
 }
-
-.review-btn::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.3),
-    transparent
-  );
-  animation: shimmer 1.5s infinite;
-}
-
-@keyframes shimmer {
-  0% {
-    left: -100%;
-  }
-  100% {
-    left: 100%;
-  }
-}
-
-.copied {
-  color: #ffd700 !important;
-  animation: copyPulse 0.5s ease-out;
-}
-
-.copy-icon {
-  transition: opacity 0.2s ease-out;
-}
-
-.cursor-pointer:hover .copy-icon {
-  opacity: 1 !important;
-}
-
-@keyframes copyPulse {
-  0% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.05);
-  }
-  100% {
-    transform: scale(1);
-  }
-}
-
-/* Slide-up transition for floating search */
-.slide-up-enter-from,
-.slide-up-leave-to {
-  transform: translateY(16px);
+.fade-enter-from,
+.fade-leave-to {
   opacity: 0;
 }
-.slide-up-enter-active,
-.slide-up-leave-active {
-  transition: all 150ms ease;
-}
-</style> 
+</style>
