@@ -3,10 +3,51 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
+	"path/filepath"
 	"tyforms/internal/config"
 	"tyforms/internal/database"
 	"tyforms/internal/handlers"
 )
+
+// spaHandler serves the SPA and handles client-side routing
+type spaHandler struct {
+	staticPath string
+	indexPath  string
+}
+
+// ServeHTTP inspects the URL path to locate a file within the static dir
+// on the filesystem. If a file is found, it will be served. If not, the
+// file located at the index path will be served to handle SPA routing.
+func (h spaHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	// Get the absolute path to prevent directory traversal
+	path := filepath.Join(h.staticPath, r.URL.Path)
+
+	// Check if path exists and whether it's a file or directory
+	fi, err := os.Stat(path)
+	if os.IsNotExist(err) {
+		// File does not exist, serve index.html for SPA routing
+		http.ServeFile(w, r, filepath.Join(h.staticPath, h.indexPath))
+		return
+	} else if err != nil {
+		// Some other error occurred
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// If it's a directory, try to serve index.html from that directory
+	if fi.IsDir() {
+		indexFile := filepath.Join(path, h.indexPath)
+		if _, err := os.Stat(indexFile); err != nil {
+			// No index.html in directory, serve main index.html
+			http.ServeFile(w, r, filepath.Join(h.staticPath, h.indexPath))
+			return
+		}
+	}
+
+	// Serve the file
+	http.FileServer(http.Dir(h.staticPath)).ServeHTTP(w, r)
+}
 
 func main() {
 	log.Printf("Starting server initialization")
@@ -41,8 +82,9 @@ func main() {
 	http.HandleFunc("/api/application/delete", handler.DeleteApplication)
 	http.HandleFunc("/api/application/unreview", handler.UnreviewApplication)
 
-	// Serve static files from the wwwroot directory
-	http.Handle("/", http.FileServer(http.Dir("wwwroot")))
+	// Serve static files and handle SPA routing
+	spa := spaHandler{staticPath: "wwwroot", indexPath: "index.html"}
+	http.Handle("/", spa)
 
 	// Start server
 	log.Printf("Server starting on port %d", cfg.Server.Port)

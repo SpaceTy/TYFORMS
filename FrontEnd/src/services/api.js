@@ -32,9 +32,15 @@ export default {
     }
   },
   
-  async getApplications(adminPassword) {
+  async getApplications(adminPassword, query = '', fields = [], page = 1, pageSize = 50) {
     try {
-      const response = await api.post('/api/application/list', { password: adminPassword });
+      const response = await api.post('/api/application/list', {
+        password: adminPassword,
+        query,
+        fields,
+        page,
+        pageSize
+      });
       return response.data;
     } catch (error) {
       console.error('Error fetching applications:', error);

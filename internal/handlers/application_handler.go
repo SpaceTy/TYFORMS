@@ -80,37 +80,80 @@ func (h *ApplicationHandler) CreateApplication(w http.ResponseWriter, r *http.Re
 	json.NewEncoder(w).Encode(app)
 }
 
-// GetApplications handles retrieving all applications (admin only)
+// GetApplications handles retrieving all applications with search and pagination (admin only)
 func (h *ApplicationHandler) GetApplications(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	// Check admin password
-	var auth struct {
-		Password string `json:"password"`
+	// Parse request with pagination and search parameters
+	var request struct {
+		Password string   `json:"password"`
+		Query    string   `json:"query"`
+		Fields   []string `json:"fields"`
+		Page     int      `json:"page"`
+		PageSize int      `json:"pageSize"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&auth); err != nil {
+
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	if auth.Password != h.adminPassword {
+	// Check admin password
+	if request.Password != h.adminPassword {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	applications, err := h.store.GetAllApplications()
+	// Set defaults
+	if request.Page == 0 {
+		request.Page = 1
+	}
+	if request.PageSize == 0 {
+		request.PageSize = 50
+	}
+
+	// Validate and whitelist search fields
+	allowedFields := map[string]bool{
+		"discordUsername":        true,
+		"minecraftUsername":      true,
+		"favoriteAboutMinecraft": true,
+		"understandingOfSMP":     true,
+		"id":                     true,
+	}
+
+	// Filter out invalid fields
+	validFields := []string{}
+	for _, field := range request.Fields {
+		if allowedFields[field] {
+			validFields = append(validFields, field)
+		}
+	}
+
+	// Call SearchApplications with pagination and search
+	applications, total, err := h.store.SearchApplications(request.Query, validFields, request.Page, request.PageSize)
 	if err != nil {
 		http.Error(w, "Error retrieving applications", http.StatusInternalServerError)
 		return
 	}
 
+	// Calculate total pages
+	totalPages := (total + request.PageSize - 1) / request.PageSize
+	if totalPages == 0 {
+		totalPages = 1
+	}
+
+	// Build response
 	w.Header().Set("Content-Type", "application/json")
 	response := map[string]interface{}{
-		"success": true,
-		"data":    applications,
+		"success":    true,
+		"data":       applications,
+		"total":      total,
+		"page":       request.Page,
+		"pageSize":   request.PageSize,
+		"totalPages": totalPages,
 	}
 	json.NewEncoder(w).Encode(response)
 }

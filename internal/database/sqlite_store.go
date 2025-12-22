@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"strconv"
+	"strings"
 	"tyforms/internal/models"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -150,6 +152,153 @@ func (s *SQLiteStore) GetAllApplications() ([]*models.MinecraftApplication, erro
 	}
 
 	return applications, nil
+}
+
+// fuzzyMatch checks if characters in needle appear in order in haystack (case-insensitive)
+// This replicates the frontend fuzzy search algorithm
+func fuzzyMatch(haystack, needle string) bool {
+	if needle == "" {
+		return true
+	}
+
+	// Convert to lowercase for case-insensitive matching
+	h := strings.ToLower(haystack)
+	n := strings.ToLower(needle)
+
+	// Convert to runes to handle Unicode properly
+	hRunes := []rune(h)
+	nRunes := []rune(n)
+
+	hIndex := 0
+	for _, nChar := range nRunes {
+		found := false
+		for hIndex < len(hRunes) {
+			if hRunes[hIndex] == nChar {
+				found = true
+				hIndex++
+				break
+			}
+			hIndex++
+		}
+		if !found {
+			return false
+		}
+	}
+
+	return true
+}
+
+// matchesSearch checks if an application matches the search query in any of the specified fields
+func matchesSearch(app *models.MinecraftApplication, query string, fields []string) bool {
+	if query == "" {
+		return true
+	}
+
+	// Create a set of fields to search
+	fieldSet := make(map[string]bool)
+	for _, field := range fields {
+		fieldSet[field] = true
+	}
+
+	// If no fields specified, search all fields
+	if len(fields) == 0 {
+		fieldSet["discordUsername"] = true
+		fieldSet["minecraftUsername"] = true
+		fieldSet["favoriteAboutMinecraft"] = true
+		fieldSet["understandingOfSMP"] = true
+		fieldSet["id"] = true
+	}
+
+	// Check each field
+	if fieldSet["discordUsername"] && fuzzyMatch(app.DiscordUsername, query) {
+		return true
+	}
+	if fieldSet["minecraftUsername"] && fuzzyMatch(app.MinecraftUsername, query) {
+		return true
+	}
+	if fieldSet["favoriteAboutMinecraft"] && fuzzyMatch(app.FavoriteAboutMinecraft, query) {
+		return true
+	}
+	if fieldSet["understandingOfSMP"] && fuzzyMatch(app.UnderstandingOfSMP, query) {
+		return true
+	}
+	if fieldSet["id"] && fuzzyMatch(strconv.Itoa(app.ID), query) {
+		return true
+	}
+
+	return false
+}
+
+// SearchApplications retrieves applications with fuzzy search and pagination
+func (s *SQLiteStore) SearchApplications(query string, fields []string, page, pageSize int) ([]*models.MinecraftApplication, int, error) {
+	// Validate and set defaults
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 100 {
+		pageSize = 50
+	}
+
+	// Fetch all applications ordered by ID DESC
+	query_sql := `SELECT * FROM applications ORDER BY id DESC`
+	rows, err := s.db.Query(query_sql)
+	if err != nil {
+		return nil, 0, fmt.Errorf("error querying applications: %w", err)
+	}
+	defer rows.Close()
+
+	// Scan all applications
+	var allApplications []*models.MinecraftApplication
+	for rows.Next() {
+		app := &models.MinecraftApplication{}
+		err := rows.Scan(
+			&app.ID,
+			&app.DiscordUsername,
+			&app.MinecraftUsername,
+			&app.Age,
+			&app.FavoriteAboutMinecraft,
+			&app.UnderstandingOfSMP,
+			&app.JoinedDiscord,
+			&app.SubmissionDate,
+			&app.IsReviewed,
+			&app.ReviewedAt,
+			&app.ReviewNotes,
+			&app.AcceptanceStatus,
+		)
+		if err != nil {
+			return nil, 0, fmt.Errorf("error scanning application: %w", err)
+		}
+		allApplications = append(allApplications, app)
+	}
+
+	// Apply fuzzy search filter
+	var filteredApplications []*models.MinecraftApplication
+	for _, app := range allApplications {
+		if matchesSearch(app, query, fields) {
+			filteredApplications = append(filteredApplications, app)
+		}
+	}
+
+	// Calculate total count after filtering
+	total := len(filteredApplications)
+
+	// Apply pagination
+	offset := (page - 1) * pageSize
+	end := offset + pageSize
+
+	// Handle edge cases
+	if offset >= total {
+		// Page is beyond available results, return empty
+		return []*models.MinecraftApplication{}, total, nil
+	}
+	if end > total {
+		end = total
+	}
+
+	// Return paginated results
+	paginatedResults := filteredApplications[offset:end]
+
+	return paginatedResults, total, nil
 }
 
 // UpdateApplication updates an existing application

@@ -237,6 +237,19 @@
               </tbody>
             </table>
           </div>
+
+          <!-- Infinite Scroll Loading Indicator -->
+          <div v-if="isLoadingMore" class="mt-4 text-center py-4">
+            <div class="text-sm text-neutral-300">Loading more applications...</div>
+          </div>
+
+          <!-- End of results indicator -->
+          <div v-else-if="applications.length > 0 && applications.length >= totalApplications" class="mt-4 text-center py-4">
+            <div class="text-sm text-neutral-400">
+              Showing all {{ totalApplications }} applications
+              <span v-if="searchQuery.trim()" class="ml-2 text-primary-400">(filtered)</span>
+            </div>
+          </div>
           </div>
         </div>
       </div>
@@ -337,7 +350,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, nextTick, inject, computed } from 'vue';
+import { ref, onMounted, onUnmounted, nextTick, inject, computed, watch } from 'vue';
 import { gsap } from 'gsap';
 import api from '../services/api';
 import { useRouter } from 'vue-router';
@@ -348,6 +361,7 @@ const confirmation = inject('confirmation');
 
 // UI state
 const isLoading = ref(false);
+const isLoadingMore = ref(false);
 const errorMessage = ref('');
 const applications = ref([]);
 
@@ -388,6 +402,12 @@ const searchFields = ref({
 const showSearchPanel = ref(false);
 const searchInputRef = ref(null);
 
+// Pagination state
+const currentPage = ref(1);
+const pageSize = ref(50);
+const totalApplications = ref(0);
+const totalPages = ref(0);
+
 function fuzzyIncludes(haystack, needle) {
   if (!needle) return true;
   const h = String(haystack ?? '').toLowerCase();
@@ -401,19 +421,9 @@ function fuzzyIncludes(haystack, needle) {
   return true;
 }
 
+// Filtered applications - now handled server-side, just return applications
 const filteredApplications = computed(() => {
-  const q = searchQuery.value.trim();
-  if (!q) return applications.value;
-  const fields = searchFields.value;
-  return applications.value.filter(app => {
-    let matched = false;
-    if (fields.discordUsername && fuzzyIncludes(app.discordUsername, q)) matched = true;
-    if (fields.minecraftUsername && fuzzyIncludes(app.minecraftUsername, q)) matched = true;
-    if (fields.favoriteAboutMinecraft && fuzzyIncludes(app.favoriteAboutMinecraft, q)) matched = true;
-    if (fields.understandingOfSMP && fuzzyIncludes(app.understandingOfSMP, q)) matched = true;
-    if (fields.id && fuzzyIncludes(String(app.id), q)) matched = true;
-    return matched;
-  });
+  return applications.value;
 });
 
 function openSearchPanel() {
@@ -512,6 +522,7 @@ onUnmounted(() => {
   document.removeEventListener('mousemove', handleDrag);
   document.removeEventListener('mouseup', stopDragging);
   window.removeEventListener('keydown', handleGlobalKeydown);
+  detachScrollListener();
 });
 
 // Authenticate user
@@ -843,19 +854,38 @@ function hideAllTooltips() {
   }
 }
 
-// Update refreshData to set up tooltip listeners after data changes
+// Load initial data or refresh (replaces existing data)
 async function refreshData() {
   isLoading.value = true;
   errorMessage.value = '';
-  
+
+  // Reset to page 1
+  currentPage.value = 1;
+
   try {
-    const response = await api.getApplications(authenticatedPassword.value);
-    
+    // Get selected search fields
+    const selectedFields = Object.keys(searchFields.value).filter(key => searchFields.value[key]);
+
+    // Call API with pagination and search params
+    const response = await api.getApplications(
+      authenticatedPassword.value,
+      searchQuery.value,
+      selectedFields,
+      currentPage.value,
+      pageSize.value
+    );
+
     if (response.success) {
       const oldLength = applications.value.length;
-      // Sort applications in reverse order by ID, handle null response
-      applications.value = (response.data || []).sort((a, b) => b.id - a.id);
-      
+      // Replace applications with new data
+      applications.value = response.data || [];
+
+      // Update pagination metadata
+      totalApplications.value = response.total;
+      totalPages.value = response.totalPages;
+      currentPage.value = response.page;
+      pageSize.value = response.pageSize;
+
       if (oldLength === 0 && applications.value.length > 0) {
         nextTick(() => {
           gsap.from('table', {
@@ -864,7 +894,7 @@ async function refreshData() {
             duration: 0.5,
             ease: 'power2.out'
           });
-          
+
           gsap.from('.application-row', {
             opacity: 0,
             y: 15,
@@ -880,39 +910,23 @@ async function refreshData() {
               container.scrollTo({ top: 0, behavior: 'smooth' });
             }
           }, 500);
-          
-          // Set up tooltip listeners after data is rendered
-          setupTooltipListeners();
-        });
-      } else if (applications.value.length > oldLength) {
-        // New entries, animate only the new ones
-        nextTick(() => {
-          const rows = document.querySelectorAll('.application-row');
-          for (let i = 0; i < applications.value.length - oldLength; i++) {
-            gsap.from(rows[i], {
-              opacity: 0,
-              y: 15,
-              duration: 0.4,
-              ease: 'power2.out',
-              delay: i * 0.05
-            });
-          }
 
-          // Scroll to top after animation
-          setTimeout(() => {
-            const container = document.querySelector('.overflow-auto');
-            if (container) {
-              container.scrollTo({ top: 0, behavior: 'smooth' });
-            }
-          }, 500);
-          
           // Set up tooltip listeners after data is rendered
           setupTooltipListeners();
         });
       } else {
-        // Just refresh tooltip listeners if data changed but no animations
-        setupTooltipListeners();
+        // Scroll to top when refreshing
+        nextTick(() => {
+          const container = document.querySelector('.overflow-auto');
+          if (container) {
+            container.scrollTo({ top: 0, behavior: 'smooth' });
+          }
+          setupTooltipListeners();
+        });
       }
+
+      // Attach scroll listener for infinite scroll
+      attachScrollListener();
     } else {
       errorMessage.value = 'Failed to load applications. Please try again.';
     }
@@ -922,6 +936,100 @@ async function refreshData() {
     isLoading.value = false;
   }
 }
+
+// Load more applications for infinite scroll (appends to existing data)
+async function loadMoreApplications() {
+  // Don't load if already loading or if we've loaded all
+  if (isLoadingMore.value || currentPage.value >= totalPages.value) {
+    return;
+  }
+
+  isLoadingMore.value = true;
+
+  try {
+    const selectedFields = Object.keys(searchFields.value).filter(key => searchFields.value[key]);
+    const nextPage = currentPage.value + 1;
+
+    const response = await api.getApplications(
+      authenticatedPassword.value,
+      searchQuery.value,
+      selectedFields,
+      nextPage,
+      pageSize.value
+    );
+
+    if (response.success) {
+      // Append new applications to existing list
+      applications.value = [...applications.value, ...(response.data || [])];
+
+      // Update pagination metadata
+      totalApplications.value = response.total;
+      totalPages.value = response.totalPages;
+      currentPage.value = response.page;
+      pageSize.value = response.pageSize;
+
+      // Set up tooltip listeners after data is rendered
+      nextTick(() => {
+        setupTooltipListeners();
+      });
+    }
+  } catch (error) {
+    console.error('Error loading more applications:', error);
+  } finally {
+    isLoadingMore.value = false;
+  }
+}
+
+// Infinite scroll handler
+function handleScroll(event) {
+  const container = event.target;
+  const scrollTop = container.scrollTop;
+  const scrollHeight = container.scrollHeight;
+  const clientHeight = container.clientHeight;
+
+  // Load more when user is within 300px of bottom
+  const threshold = 300;
+  if (scrollHeight - scrollTop - clientHeight < threshold) {
+    loadMoreApplications();
+  }
+}
+
+// Attach scroll listener
+let scrollContainer = null;
+function attachScrollListener() {
+  nextTick(() => {
+    scrollContainer = document.querySelector('.overflow-auto');
+    if (scrollContainer) {
+      scrollContainer.addEventListener('scroll', handleScroll);
+    }
+  });
+}
+
+// Detach scroll listener
+function detachScrollListener() {
+  if (scrollContainer) {
+    scrollContainer.removeEventListener('scroll', handleScroll);
+  }
+}
+
+// Debounced search
+let searchDebounceTimeout = null;
+function triggerSearch() {
+  // Clear existing timeout
+  if (searchDebounceTimeout) {
+    clearTimeout(searchDebounceTimeout);
+  }
+
+  // Set new timeout for 300ms - refreshData will reset to page 1
+  searchDebounceTimeout = setTimeout(() => {
+    refreshData();
+  }, 300);
+}
+
+// Watch for search query and field changes
+watch([searchQuery, searchFields], () => {
+  triggerSearch();
+}, { deep: true });
 
 // Export to CSV
 async function exportToCsv() {
