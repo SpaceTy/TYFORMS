@@ -207,7 +207,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted, toRaw } from 'vue';
 
 const props = defineProps({
   show: {
@@ -246,8 +246,8 @@ const editableFields = computed(() => {
 // Initialize editable application
 watch(() => props.application, (newApp) => {
   if (newApp) {
-    editableApplication.value = structuredClone(newApp);
-    preview.value = structuredClone(newApp);
+    editableApplication.value = structuredClone(toRaw(newApp));
+    preview.value = structuredClone(toRaw(newApp));
   }
 }, { immediate: true });
 
@@ -267,7 +267,7 @@ function formatLabel(key) {
 
 // Update preview
 function updatePreview() {
-  preview.value = structuredClone(editableApplication.value);
+  preview.value = structuredClone(toRaw(editableApplication.value));
 }
 
 // Set status
@@ -334,7 +334,7 @@ async function saveChanges() {
 
 // Undo changes
 function undoChanges() {
-  editableApplication.value = structuredClone(props.application);
+  editableApplication.value = structuredClone(toRaw(props.application));
   updatePreview();
 }
 

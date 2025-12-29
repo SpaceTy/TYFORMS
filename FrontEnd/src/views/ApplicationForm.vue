@@ -311,7 +311,7 @@ async function submitForm() {
     router.push('/thank-you');
   } catch (error) {
     if (error.response && error.response.status === 409) {
-      errorMessage.value = 'A player with this Minecraft username already applied.';
+      errorMessage.value = error.response.data?.error || 'A player with this Minecraft username already applied.';
     } else {
       errorMessage.value = 'There was an error submitting your application. Please try again.';
     }

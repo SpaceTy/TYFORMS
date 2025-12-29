@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 	"tyforms/internal/database"
 	"tyforms/internal/models"
@@ -70,6 +71,15 @@ func (h *ApplicationHandler) CreateApplication(w http.ResponseWriter, r *http.Re
 	log.Printf("Attempting to create application in database")
 	if err := h.store.CreateApplication(&app); err != nil {
 		log.Printf("Database error creating application: %v", err)
+		// Check if it's a unique constraint violation
+		if strings.Contains(err.Error(), "UNIQUE constraint failed: applications.minecraft_username") {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusConflict)
+			json.NewEncoder(w).Encode(map[string]string{
+				"error": "A player with this Minecraft username has already applied. Please contact an admin if you believe this is an error.",
+			})
+			return
+		}
 		http.Error(w, "Error creating application", http.StatusInternalServerError)
 		return
 	}

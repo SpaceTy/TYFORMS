@@ -880,6 +880,7 @@ function handleMouseMove(event) {
 }
 
 function findTooltipContainer(element) {
+  if (!element) return null;
   return element.closest('.tooltip-container');
 }
 
