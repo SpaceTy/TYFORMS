@@ -1,8 +1,8 @@
 <template>
-  <div class="h-full w-full absolute inset-0 bg-neutral-900 text-white overflow-hidden" @mousemove.stop>
+  <div class="h-full w-full absolute inset-0 bg-black text-white overflow-hidden" @mousemove.stop>
     <!-- Login Form -->
     <div v-if="!isAuthenticated" class="h-full w-full flex flex-col items-center justify-center p-6 login-container z-10 relative">
-      <div class="mc-container w-full max-w-sm backdrop-blur-xl bg-black/40 border border-white/10 shadow-2xl p-6 rounded-2xl animate-fade-in">
+      <div class="mc-container w-full max-w-sm bg-black/60 border border-white/10 shadow-2xl p-6 rounded-2xl animate-fade-in">
         <h2 class="mc-title text-center text-2xl mb-6">Admin Access</h2>
         
         <form @submit.prevent="authenticate" class="space-y-5">
@@ -12,7 +12,7 @@
               id="password" 
               v-model="password" 
               type="password" 
-              class="w-full bg-black/50 border border-white/20 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all placeholder-gray-500"
+              class="w-full bg-black/70 border border-white/20 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all placeholder-gray-500"
               placeholder="Enter admin password"
               required
               ref="passwordInput"
@@ -36,10 +36,10 @@
     <!-- Admin Dashboard -->
     <div v-else class="h-full flex flex-col relative z-10" ref="adminContainerRef">
       <!-- Header -->
-      <header class="bg-black/80 backdrop-blur-md border-b border-white/10 px-4 py-3 flex items-center justify-between shrink-0 z-30">
+      <header class="bg-black/90 border-b border-white/10 px-4 py-3 flex items-center justify-between shrink-0 z-30">
         <div class="flex items-center gap-2">
           <h2 class="font-pixel text-xl text-primary-400 m-0 leading-none">Dashboard</h2>
-          <span class="text-xs bg-white/10 px-2 py-0.5 rounded text-gray-400 font-mono">{{ totalApplications }}</span>
+          <span class="text-xs bg-black/30 px-2 py-0.5 rounded text-gray-400 font-mono">{{ totalApplications }}</span>
         </div>
         
         <div class="flex items-center gap-2">
@@ -57,7 +57,7 @@
             </button>
             
             <!-- Dropdown Menu -->
-            <div v-if="showMenu" class="absolute right-0 top-full mt-2 w-48 bg-neutral-900 border border-white/10 rounded-xl shadow-xl overflow-hidden z-50 animate-scale-in origin-top-right">
+            <div v-if="showMenu" class="absolute right-0 top-full mt-2 w-48 bg-black/90 border border-white/10 rounded-xl shadow-xl overflow-hidden z-50 animate-scale-in origin-top-right">
               <div class="py-1">
                 <button @click="refreshData(); showMenu = false" class="w-full text-left px-4 py-3 hover:bg-white/5 flex items-center gap-2 text-sm">
                   <span v-if="isLoading" class="animate-spin">⟳</span>
@@ -67,7 +67,7 @@
                 <button @click="exportToCsv(); showMenu = false" class="w-full text-left px-4 py-3 hover:bg-white/5 flex items-center gap-2 text-sm">
                   <span>⬇</span> Export CSV
                 </button>
-                <div class="h-px bg-white/10 my-1"></div>
+                <div class="h-px bg-black/30 my-1"></div>
                 <button @click="logout" class="w-full text-left px-4 py-3 hover:bg-red-500/20 text-red-400 flex items-center gap-2 text-sm">
                   <span>➜</span> Logout
                 </button>
@@ -80,12 +80,12 @@
       </header>
       
       <!-- Search Bar (Expandable) -->
-      <div v-if="showSearch" class="bg-black/60 border-b border-white/10 px-4 py-3 animate-slide-down shrink-0">
+      <div v-if="showSearch" class="bg-black/80 border-b border-white/10 px-4 py-3 animate-slide-down shrink-0">
         <div class="relative">
           <input 
             v-model="searchQuery" 
             ref="searchInput"
-            class="w-full bg-black/40 border border-white/20 rounded-lg pl-9 pr-4 py-2 text-sm focus:outline-none focus:border-primary-500/50 focus:ring-1 focus:ring-primary-500/50 transition-all"
+            class="w-full bg-black/60 border border-white/20 rounded-lg pl-9 pr-4 py-2 text-sm focus:outline-none focus:border-primary-500/50 focus:ring-1 focus:ring-primary-500/50 transition-all"
             placeholder="Search username, discord..." 
           />
           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -99,7 +99,7 @@
         <div class="flex gap-2 mt-2 overflow-x-auto pb-1 hide-scrollbar">
            <label v-for="(enabled, field) in searchFields" :key="field" 
                   class="flex-shrink-0 text-xs px-2 py-1 rounded-full border cursor-pointer select-none transition-colors"
-                  :class="enabled ? 'bg-primary-500/20 border-primary-500/40 text-primary-200' : 'bg-white/5 border-white/10 text-gray-400'">
+                  :class="enabled ? 'bg-primary-500/20 border-primary-500/40 text-primary-200' : 'bg-black/20 border-white/10 text-gray-400'">
              <input type="checkbox" v-model="searchFields[field]" class="hidden">
              {{ formatFieldName(field) }}
            </label>
@@ -107,7 +107,7 @@
       </div>
       
       <!-- Error Message -->
-      <div v-if="errorMessage" class="bg-red-900/50 border-l-4 border-red-500 text-white p-3 mx-4 my-2 text-sm rounded shadow-lg backdrop-blur shrink-0 animate-fade-in">
+      <div v-if="errorMessage" class="bg-red-900/50 border-l-4 border-red-500 text-white p-3 mx-4 my-2 text-sm rounded shadow-lg shrink-0 animate-fade-in">
         <div class="flex justify-between items-start">
           <span>{{ errorMessage }}</span>
           <button @click="errorMessage = ''" class="text-white/60 hover:text-white">×</button>
@@ -124,7 +124,7 @@
         
         <!-- Empty State -->
         <div v-if="applications.length === 0 && !isLoading" class="flex flex-col items-center justify-center h-64 text-center text-gray-400">
-          <div class="bg-white/5 p-4 rounded-full mb-3">
+          <div class="bg-black/20 p-4 rounded-full mb-3">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
@@ -137,7 +137,7 @@
         <div 
           v-for="app in filteredApplications" 
           :key="app.id"
-          class="application-card bg-neutral-800/60 border border-white/5 rounded-xl p-4 shadow-sm backdrop-blur-sm active:bg-neutral-800 transition-colors"
+          class="application-card bg-black/60 border border-white/5 rounded-xl p-4 shadow-sm active:bg-black/80 transition-colors"
           :class="{
             'border-l-4 border-l-yellow-500': !app.isReviewed,
             'border-l-4 border-l-green-500': app.isReviewed && app.acceptanceStatus === 'accepted',
@@ -165,7 +165,7 @@
           
           <!-- Players Details -->
           <div class="flex items-center gap-3 mb-3">
-             <div class="h-10 w-10 rounded bg-neutral-700 flex items-center justify-center shrink-0">
+             <div class="h-10 w-10 rounded bg-black/60 flex items-center justify-center shrink-0">
                <!-- Minecraft Head Placeholder / Initials -->
                <span class="font-pixel text-lg">{{ app.minecraftUsername.charAt(0).toUpperCase() }}</span>
              </div>
@@ -190,7 +190,7 @@
           </div>
           
           <!-- Q&A Preview -->
-          <div class="space-y-2 mb-4 bg-black/20 p-2 rounded text-xs text-gray-300">
+          <div class="space-y-2 mb-4 bg-black/40 p-2 rounded text-xs text-gray-300">
             <div>
               <span class="text-primary-400 font-bold uppercase text-[10px]">Favorite Thing</span>
               <p class="line-clamp-2 leading-relaxed">{{ app.favoriteAboutMinecraft }}</p>
@@ -206,7 +206,7 @@
             <button 
               @click="openReviewModal(app)" 
               class="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-bold transition-all"
-              :class="app.isReviewed ? 'bg-neutral-700 text-white hover:bg-neutral-600' : 'bg-green-600 text-white hover:bg-green-500 shadow-lg shadow-green-900/20'"
+              :class="app.isReviewed ? 'bg-black/70 text-white hover:bg-black/60' : 'bg-green-600 text-white hover:bg-green-500 shadow-lg shadow-green-900/20'"
             >
               <span v-if="app.isReviewed">Edit Review</span>
               <span v-else>Review App</span>
@@ -237,10 +237,10 @@
     <Transition name="fade">
       <div v-if="showReviewModal" class="fixed inset-0 z-[100] flex items-end sm:items-center justify-center" role="dialog">
         <!-- Backdrop -->
-        <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" @click="showReviewModal = false"></div>
+        <div class="absolute inset-0 bg-black/90" @click="showReviewModal = false"></div>
         
         <!-- Modal Content -->
-        <div class="relative w-full sm:w-[500px] bg-[#1a1a1a] sm:rounded-xl rounded-t-xl border-t sm:border border-white/10 shadow-2xl flex flex-col max-h-[90vh] animate-slide-up">
+        <div class="relative w-full sm:w-[500px] bg-[#0a0a0a] sm:rounded-xl rounded-t-xl border-t sm:border border-white/10 shadow-2xl flex flex-col max-h-[90vh] animate-slide-up">
            <!-- Modal Header -->
            <div class="px-5 py-4 border-b border-white/5 flex justify-between items-center shrink-0">
              <h3 class="text-lg font-bold text-white">Review Application</h3>
@@ -250,7 +250,7 @@
            <!-- Modal Body (Scrollable) -->
            <div class="p-5 overflow-y-auto custom-scrollbar space-y-5">
              <div v-if="selectedApplication">
-               <div class="flex items-center gap-3 p-3 bg-white/5 rounded-lg border border-white/5">
+               <div class="flex items-center gap-3 p-3 bg-black/50 rounded-lg border border-white/5">
                  <div class="h-10 w-10 bg-primary-900/50 rounded flex items-center justify-center text-primary-300 font-bold">
                    {{ selectedApplication.minecraftUsername.charAt(0).toUpperCase() }}
                  </div>
@@ -264,11 +264,11 @@
                <div class="space-y-3 mt-4">
                   <div>
                     <span class="text-xs uppercase text-gray-500 font-bold tracking-wider">Favorite Thing About MC</span>
-                    <p class="text-sm text-gray-300 mt-1 p-3 bg-black/30 rounded-lg border border-white/5">{{ selectedApplication.favoriteAboutMinecraft }}</p>
+                    <p class="text-sm text-gray-300 mt-1 p-3 bg-black/50 rounded-lg border border-white/5">{{ selectedApplication.favoriteAboutMinecraft }}</p>
                   </div>
                   <div>
                     <span class="text-xs uppercase text-gray-500 font-bold tracking-wider">Understanding of SMP</span>
-                    <p class="text-sm text-gray-300 mt-1 p-3 bg-black/30 rounded-lg border border-white/5">{{ selectedApplication.understandingOfSMP }}</p>
+                    <p class="text-sm text-gray-300 mt-1 p-3 bg-black/50 rounded-lg border border-white/5">{{ selectedApplication.understandingOfSMP }}</p>
                   </div>
                </div>
 
@@ -300,7 +300,7 @@
                  <textarea 
                    v-model="reviewNotes"
                    rows="3" 
-                   class="w-full bg-black/30 border border-white/10 rounded-lg p-3 text-sm text-white focus:outline-none focus:border-primary-500/50"
+                   class="w-full bg-black/50 border border-white/10 rounded-lg p-3 text-sm text-white focus:outline-none focus:border-primary-500/50"
                    placeholder="Add notes privately..."
                  ></textarea>
                </div>
@@ -320,7 +320,7 @@
            </div>
            
            <!-- Modal Footer -->
-           <div class="p-4 border-t border-white/5 bg-neutral-900/50 shrink-0 flex gap-3">
+           <div class="p-4 border-t border-white/5 bg-black/70 shrink-0 flex gap-3">
              <button @click="showReviewModal = false" class="flex-1 py-3 rounded-lg text-gray-400 hover:bg-white/5 text-sm font-bold">Cancel</button>
              <button 
                @click="submitReview" 

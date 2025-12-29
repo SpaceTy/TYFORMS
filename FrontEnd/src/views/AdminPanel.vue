@@ -37,7 +37,7 @@
     <div v-else class="absolute inset-0 p-4">
       <div ref="adminContainerRef" class="admin-panel mc-panel w-full h-full flex flex-col">
         <!-- Fixed top bar -->
-        <div class="flex justify-between items-center px-6 py-4 bg-white/5 backdrop-blur sticky top-0 z-20 border-b border-white/10">
+        <div class="flex justify-between items-center px-6 py-4 bg-black/70 sticky top-0 z-20 border-b border-white/10">
           <h2 class="mc-title mb-0">Applications Dashboard</h2>
           
           <div class="flex gap-2">
@@ -61,7 +61,7 @@
         </div>
         
         <!-- Scrollable content area -->
-        <div class="flex-grow overflow-hidden flex flex-col p-6 bg-black/30 backdrop-blur-md">
+        <div class="flex-grow overflow-hidden flex flex-col p-6 bg-black/80">
           <div v-if="applications.length === 0 && !isLoading" class="text-center py-10 text-white flex-grow flex items-center justify-center">
             <div class="glass p-6 rounded-xl">
               <p class="text-xl font-medium">No applications yet</p>
@@ -72,10 +72,10 @@
           <div v-else class="overflow-auto flex-grow">
             <!-- Rounded wrapper to clip inner table corners -->
             <!-- Use overflow-clip for better Firefox clipping with sticky header -->
-            <div class="rounded-lg border border-white/10 bg-white/5 backdrop-blur-sm" style="overflow: clip;">
+            <div class="rounded-lg border border-white/10 bg-black/60" style="overflow: clip;">
               <table class="w-full table-fixed">
                 <thead class="sticky top-0 z-10">
-                  <tr class="bg-white/10 backdrop-blur">
+                  <tr class="bg-black/70">
                   <th class="w-20 px-3 py-3 text-left text-xs font-medium text-neutral-200 uppercase tracking-wide whitespace-nowrap border-r border-white/10">#</th>
                   <th class="w-32 px-3 py-3 text-left text-xs font-medium text-neutral-200 uppercase tracking-wide whitespace-nowrap border-r border-white/10">DC</th>
                   <th class="w-32 px-3 py-3 text-left text-xs font-medium text-neutral-200 uppercase tracking-wide whitespace-nowrap border-r border-white/10">MC</th>
@@ -93,7 +93,7 @@
                   v-for="(app, index) in filteredApplications" 
                   :key="app.id" 
                   :class="[
-                    {'bg-white/[0.02]': index % 2 === 0},
+                    {'bg-black/10': index % 2 === 0},
                     {'bg-red-500/10': !app.isReviewed}
                   ]"
                   class="hover:bg-primary-400/10 transition-colors duration-150 application-row"
@@ -317,7 +317,7 @@
     </Teleport>
     
     <!-- Notes Modal -->
-    <div v-if="showNotesModal" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+    <div v-if="showNotesModal" class="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
       <div class="mc-container max-w-lg w-full animate-scale-in">
         <div class="flex justify-between items-center mb-4">
           <h3 class="mc-title text-lg">Review Notes</h3>
@@ -812,10 +812,10 @@ function setupTooltipListeners() {
   // Initialize the global tooltip
   nextTick(() => {
     initializeGlobalTooltip();
-    
+
     // Find all tooltip containers
     const tooltipContainers = document.querySelectorAll('.tooltip-container');
-    
+
     // Remove existing content and add data attributes
     tooltipContainers.forEach(container => {
       const tooltipElement = container.querySelector('.tooltip');
@@ -825,25 +825,62 @@ function setupTooltipListeners() {
         // Remove the tooltip element
         tooltipElement.remove();
       }
-      
-      // Remove existing event listeners
-      container.removeEventListener('mouseenter', showTooltip);
-      container.removeEventListener('mouseleave', hideTooltip);
-      container.removeEventListener('mousemove', positionTooltip);
-      
-      // Add new event listeners
-      container.addEventListener('mouseenter', showTooltip);
-      container.addEventListener('mouseleave', hideTooltip);
-      container.addEventListener('mousemove', positionTooltip);
     });
-    
-    // Add scroll listener to hide tooltip when scrolling
+
+    // Find table container for event delegation
     const tableContainer = document.querySelector('.overflow-auto');
-    if (tableContainer) {
-      tableContainer.removeEventListener('scroll', hideTooltip);
-      tableContainer.addEventListener('scroll', hideTooltip);
-    }
+    if (!tableContainer) return;
+
+    // Remove existing event listeners (if any)
+    tableContainer.removeEventListener('mouseover', handleMouseOver);
+    tableContainer.removeEventListener('mouseout', handleMouseOut);
+    tableContainer.removeEventListener('mousemove', handleMouseMove);
+    tableContainer.removeEventListener('scroll', hideTooltip);
+
+    // Add delegated event listeners
+    tableContainer.addEventListener('mouseover', handleMouseOver);
+    tableContainer.addEventListener('mouseout', handleMouseOut);
+    tableContainer.addEventListener('mousemove', handleMouseMove);
+    tableContainer.addEventListener('scroll', hideTooltip);
   });
+}
+
+let currentTooltipContainer = null;
+
+function handleMouseOver(event) {
+  const container = findTooltipContainer(event.target);
+  if (!container) {
+    hideTooltip();
+    currentTooltipContainer = null;
+    return;
+  }
+  if (container === currentTooltipContainer) return;
+  currentTooltipContainer = container;
+  // Create a synthetic event with currentTarget set to container
+  const syntheticEvent = { currentTarget: container };
+  showTooltip(syntheticEvent);
+}
+
+function handleMouseOut(event) {
+  const relatedTarget = event.relatedTarget;
+  const newContainer = findTooltipContainer(relatedTarget);
+  // If moving to an element that is not inside the current container, hide tooltip
+  if (newContainer !== currentTooltipContainer) {
+    hideTooltip();
+    currentTooltipContainer = null;
+  }
+}
+
+function handleMouseMove(event) {
+  if (!currentTooltipContainer) return;
+  const container = findTooltipContainer(event.target);
+  if (container !== currentTooltipContainer) return;
+  const syntheticEvent = { currentTarget: container };
+  positionTooltip(syntheticEvent);
+}
+
+function findTooltipContainer(element) {
+  return element.closest('.tooltip-container');
 }
 
 // Update refreshData to hide tooltips
