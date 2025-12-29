@@ -1,5 +1,5 @@
 <template>
-  <div v-if="show" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+  <div v-if="show" class="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
     <div class="mc-container max-w-6xl w-full animate-scale-in">
       <!-- Header -->
       <div class="flex justify-between items-center mb-4">
@@ -23,7 +23,7 @@
         <div class="flex-1 bg-minecraft-deepslate/40 rounded-md p-4 border border-minecraft-stone/50 min-w-0">
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <!-- Basic Info Block -->
-            <div class="bg-black/30 p-3 rounded border border-minecraft-stone/30 lg:col-span-1">
+            <div class="bg-black/50 p-3 rounded border border-minecraft-stone/30 lg:col-span-1">
               <h4 class="text-minecraft-water font-minecraft mb-2">Basic Info</h4>
               <div class="space-y-3">
                 <div>
@@ -55,7 +55,7 @@
             </div>
 
             <!-- Status Block -->
-            <div class="bg-black/30 p-3 rounded border border-minecraft-stone/30 lg:col-span-1">
+            <div class="bg-black/50 p-3 rounded border border-minecraft-stone/30 lg:col-span-1">
               <h4 class="text-minecraft-water font-minecraft mb-2">Status</h4>
               <div class="space-y-3">
                 <div class="flex gap-2">
@@ -91,7 +91,7 @@
             </div>
 
             <!-- Application Details Block -->
-            <div class="bg-black/30 p-3 rounded border border-minecraft-stone/30 lg:col-span-2">
+            <div class="bg-black/50 p-3 rounded border border-minecraft-stone/30 lg:col-span-2">
               <h4 class="text-minecraft-water font-minecraft mb-2">Application Details</h4>
               <div class="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-3">
                 <div v-for="([fieldName, value]) in editableFields" 
@@ -138,7 +138,7 @@
         <!-- Right Panel - Preview -->
         <div class="flex-1 lg:flex-none lg:w-1/2 lg:max-w-[50%] bg-minecraft-deepslate/40 rounded-md p-4 border border-minecraft-stone/50">
           <h4 class="text-minecraft-water font-minecraft mb-2">Preview</h4>
-          <div class="bg-black/30 p-4 rounded border border-minecraft-stone/30">
+          <div class="bg-black/50 p-4 rounded border border-minecraft-stone/30">
             <div class="space-y-4">
               <div class="flex items-center gap-2">
                 <div class="w-8 h-8 bg-minecraft-stone rounded flex-shrink-0"></div>
@@ -246,8 +246,8 @@ const editableFields = computed(() => {
 // Initialize editable application
 watch(() => props.application, (newApp) => {
   if (newApp) {
-    editableApplication.value = JSON.parse(JSON.stringify(newApp));
-    preview.value = JSON.parse(JSON.stringify(newApp));
+    editableApplication.value = structuredClone(newApp);
+    preview.value = structuredClone(newApp);
   }
 }, { immediate: true });
 
@@ -267,7 +267,7 @@ function formatLabel(key) {
 
 // Update preview
 function updatePreview() {
-  preview.value = JSON.parse(JSON.stringify(editableApplication.value));
+  preview.value = structuredClone(editableApplication.value);
 }
 
 // Set status
@@ -334,7 +334,7 @@ async function saveChanges() {
 
 // Undo changes
 function undoChanges() {
-  editableApplication.value = JSON.parse(JSON.stringify(props.application));
+  editableApplication.value = structuredClone(props.application);
   updatePreview();
 }
 

@@ -1,12 +1,11 @@
 <template>
-  <StarryBackground @rotation-change="updateRotation" />
-  <div 
+  <div
     class="min-h-screen flex flex-col relative"
     :class="{
       'py-10 px-4 sm:px-6': !isAdminRoute,
       'p-0': isAdminRoute
     }"
-    style="background: radial-gradient(1200px 600px at 50% -10%, rgba(96,165,250,0.10), transparent), radial-gradient(800px 400px at 80% 20%, rgba(250,204,21,0.08), transparent);"
+    style="background: #050505 radial-gradient(1200px 600px at 50% -10%, rgba(96,165,250,0.03), transparent), radial-gradient(800px 400px at 80% 20%, rgba(250,204,21,0.02), transparent);"
   >
     <!-- Header is hidden on admin route -->
     <header 
@@ -58,14 +57,12 @@
 </template>
 
 <script setup>
-import { computed, provide, ref } from 'vue';
+import { computed, provide } from 'vue';
 import { useRoute } from 'vue-router';
 import ConfirmationDialog from './components/ConfirmationDialog.vue';
-import StarryBackground from './components/StarryBackground.vue';
 import { useConfirmation } from './composables/useConfirmation';
 
 const route = useRoute();
-const rotation = ref({ x: 0, y: 0 });
 
 const {
   show,
@@ -89,9 +86,6 @@ const isAdminRoute = computed(() => {
   return route.path === '/admin';
 });
 
-const updateRotation = (newRotation) => {
-  rotation.value = newRotation;
-};
 </script>
 
 <style>
