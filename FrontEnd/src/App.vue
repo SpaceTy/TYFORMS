@@ -53,14 +53,25 @@
       @cancel="handleCancel"
       @update:show="show = $event"
     />
+
+    <!-- Notification Toast -->
+    <NotificationToast
+      :show="showNotification"
+      :type="notificationType"
+      :message="notificationMessage"
+      :undo-action="notificationUndoAction"
+      :on-close="closeNotification"
+    />
   </div>
 </template>
 
 <script setup>
-import { computed, provide } from 'vue';
+import { computed, provide, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import ConfirmationDialog from './components/ConfirmationDialog.vue';
+import NotificationToast from './components/NotificationToast.vue';
 import { useConfirmation } from './composables/useConfirmation';
+import { useNotification } from './composables/useNotification';
 
 const route = useRoute();
 
@@ -76,14 +87,43 @@ const {
   handleCancel
 } = useConfirmation();
 
+const {
+  show: showNotification,
+  type: notificationType,
+  message: notificationMessage,
+  undoAction: notificationUndoAction,
+  success,
+  error,
+  showNotification: showNotificationFn,
+  close: closeNotification
+} = useNotification();
+
 // Provide the confirmation functionality to all child components
 provide('confirmation', {
   confirm
 });
 
+// Provide the notification functionality to all child components
+provide('notification', {
+  success,
+  error,
+  showNotification: showNotificationFn
+});
+
 // Check if we're on admin route to adjust layout
 const isAdminRoute = computed(() => {
   return route.path === '/admin';
+});
+
+onMounted(() => {
+  // Global keyboard listener for Ctrl+Z / Cmd+Z undo
+  window.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+      e.preventDefault();
+      // This will be handled by individual components that manage undo state
+      // The notification system itself doesn't manage undo state
+    }
+  });
 });
 
 </script>

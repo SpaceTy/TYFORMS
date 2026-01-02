@@ -105,15 +105,15 @@
                     </div>
                   </td>
                   
-                  <td class="px-3 py-2 text-sm" :class="{'text-red-400': !app.isReviewed, 'text-white': app.isReviewed}">
-                    <div class="tooltip-container" :data-tooltip="app.discordUsername" :title="app.discordUsername">
+                   <td class="px-3 py-2 text-sm" :class="{'text-red-400': !app.isReviewed, 'text-white': app.isReviewed}">
+                    <div class="tooltip-container" :data-tooltip="app.discordUsername">
                       <div class="truncate">{{ app.discordUsername }}</div>
                     </div>
                   </td>
                   
-                  <td class="px-3 py-2 text-sm" :class="{'text-red-400': !app.isReviewed, 'text-white': app.isReviewed}">
-                    <div class="tooltip-container" :data-tooltip="app.minecraftUsername" :title="app.minecraftUsername">
-                      <div 
+                   <td class="px-3 py-2 text-sm" :class="{'text-red-400': !app.isReviewed, 'text-white': app.isReviewed}">
+                    <div class="tooltip-container" :data-tooltip="app.minecraftUsername">
+                      <div
                         class="truncate cursor-pointer hover:text-primary-300 transition-colors duration-150"
                         @click="copyToClipboard(app.minecraftUsername)"
                         :class="{'copied': app.minecraftUsername === lastCopiedUsername}"
@@ -128,14 +128,14 @@
                     {{ app.age }}
                   </td>
                   
-                  <td class="px-3 py-2 text-sm" :class="{'text-red-400': !app.isReviewed, 'text-white': app.isReviewed}">
-                    <div class="tooltip-container" :data-tooltip="app.favoriteAboutMinecraft" :title="app.favoriteAboutMinecraft">
+                   <td class="px-3 py-2 text-sm" :class="{'text-red-400': !app.isReviewed, 'text-white': app.isReviewed}">
+                    <div class="tooltip-container" :data-tooltip="app.favoriteAboutMinecraft">
                       <div class="truncate">{{ app.favoriteAboutMinecraft }}</div>
                     </div>
                   </td>
-                  
+
                   <td class="px-3 py-2 text-sm" :class="{'text-red-400': !app.isReviewed, 'text-white': app.isReviewed}">
-                    <div class="tooltip-container" :data-tooltip="app.understandingOfSMP" :title="app.understandingOfSMP">
+                    <div class="tooltip-container" :data-tooltip="app.understandingOfSMP">
                       <div class="truncate">{{ app.understandingOfSMP }}</div>
                     </div>
                   </td>
@@ -149,15 +149,15 @@
                     </span>
                   </td>
                   
-                  <td class="px-3 py-2 text-sm" :class="{'text-red-400': !app.isReviewed, 'text-white': app.isReviewed}">
-                    <div class="tooltip-container" :data-tooltip="formatDate(app.submissionDate, true)" :title="formatDate(app.submissionDate, true)">
+                   <td class="px-3 py-2 text-sm" :class="{'text-red-400': !app.isReviewed, 'text-white': app.isReviewed}">
+                    <div class="tooltip-container" :data-tooltip="formatDate(app.submissionDate, true)">
                       <div class="truncate">{{ formatDate(app.submissionDate) }}</div>
                     </div>
                     <div v-if="app.isReviewed" class="text-xs mt-1 text-green-400">
                       Reviewed: {{ formatDate(app.reviewedAt) }}
                     </div>
                     <div v-if="app.isReviewed && app.acceptanceStatus" class="mt-1">
-                      <span 
+                      <span
                         class="text-xs px-2 py-0.5 rounded-full"
                         :class="{
                           'bg-green-600 text-white': app.acceptanceStatus === 'accepted',
@@ -165,71 +165,114 @@
                           'bg-yellow-500 text-black': app.acceptanceStatus === 'pending'
                         }"
                       >
-                        {{ app.acceptanceStatus === 'accepted' ? 'Accepted' : 
+                        {{ app.acceptanceStatus === 'accepted' ? 'Accepted' :
                            app.acceptanceStatus === 'rejected' ? 'Rejected' : 'Pending' }}
                       </span>
                     </div>
                   </td>
                   
-                  <td class="px-3 py-2 text-sm text-white text-center">
-                    <div class="flex flex-col gap-2">
-                      <button 
-                        v-if="app.isReviewed && app.acceptanceStatus === 'pending'"
-                        @click="quickSetAcceptance(app, 'accepted')"
-                        class="mc-button text-xs px-2 py-1"
-                        :disabled="isProcessing === app.id"
-                        :title="'Mark as Accepted'"
-                      >
-                        <span v-if="isProcessing === app.id">...</span>
-                        <span v-else>Accept</span>
-                      </button>
-
-                      <button 
-                        v-if="app.isReviewed && app.acceptanceStatus === 'pending'"
-                        @click="quickSetAcceptance(app, 'rejected')"
-                        class="mc-button text-xs danger px-2 py-1"
-                        :disabled="isProcessing === app.id"
-                        :title="'Mark as Rejected'"
-                      >
-                        <span v-if="isProcessing === app.id">...</span>
-                        <span v-else>Reject</span>
-                      </button>
-
-                      <button 
-                        v-if="!app.isReviewed"
-                        @click="openEditModal(app)"
-                        class="mc-button text-xs px-2 py-1 review-btn animate-pulse"
-                        :disabled="isProcessing === app.id"
-                      >
-                        <span v-if="isProcessing === app.id">...</span>
-                        <span v-else>Review</span>
-                      </button>
-                      
-                      <button 
-                        v-if="app.isReviewed"
-                        @click="confirmUnreview(app.id)"
-                        class="mc-button text-xs danger px-2 py-1"
-                        :disabled="isProcessing === app.id"
-                      >
-                        <span v-if="isProcessing === app.id">...</span>
-                        <span v-else>Unreview</span>
-                      </button>
-                      
-                      <button 
+                   <td class="px-3 py-2 text-sm text-white text-center">
+                    <!-- Reviewed with Accepted or Rejected status -->
+                    <div v-if="app.isReviewed && (app.acceptanceStatus === 'accepted' || app.acceptanceStatus === 'rejected')" class="grid grid-rows-2 gap-2">
+                      <button
                         @click="confirmDelete(app.id)"
-                        class="mc-button text-xs danger px-2 py-1"
+                        class="mc-button danger px-2 py-1 border border-white/20"
                         :disabled="isDeleting === app.id"
+                        :title="'Delete'"
                       >
                         <span v-if="isDeleting === app.id">...</span>
-                        <span v-else>Delete</span>
+                        <span v-else class="text-sm">🗑</span>
                       </button>
-                      
-                      <button 
-                        v-if="app.isReviewed && app.reviewNotes"
-                        @click="showNotes(app)"
-                        class="mc-button text-xs secondary px-2 py-1"
+
+                      <button
+                        @click="confirmUnreview(app.id)"
+                        class="mc-button secondary px-2 py-1 border border-white/30"
+                        :disabled="isProcessing === app.id"
+                        :title="'Unreview'"
                       >
-                        Notes
+                        <span v-if="isProcessing === app.id">...</span>
+                        <span v-else class="text-sm">↶</span>
+                      </button>
+                    </div>
+
+                    <!-- Reviewed with Pending status -->
+                    <div v-else-if="app.isReviewed && app.acceptanceStatus === 'pending'" class="grid grid-cols-2 gap-2">
+                      <button
+                        @click="quickReview(app, 'accepted', $event)"
+                        @click.shift="openNotesModal(app, 'accepted')"
+                        class="mc-button px-2 py-1 bg-green-600 border border-green-400/30"
+                        :disabled="isProcessing === app.id"
+                        :title="'Accept'"
+                      >
+                        <span v-if="isProcessing === app.id">...</span>
+                        <span v-else class="text-sm">✓</span>
+                      </button>
+
+                      <button
+                        @click="quickReview(app, 'rejected', $event)"
+                        @click.shift="openNotesModal(app, 'rejected')"
+                        class="mc-button px-2 py-1 bg-red-600 border border-red-400/30"
+                        :disabled="isProcessing === app.id"
+                        :title="'Reject'"
+                      >
+                        <span v-if="isProcessing === app.id">...</span>
+                        <span v-else class="text-sm">✕</span>
+                      </button>
+
+                      <button
+                        @click="confirmDelete(app.id)"
+                        class="col-span-2 mc-button danger px-2 py-1 border border-white/20"
+                        :disabled="isDeleting === app.id"
+                        :title="'Delete'"
+                      >
+                        <span v-if="isDeleting === app.id">...</span>
+                        <span v-else class="text-sm">🗑</span>
+                      </button>
+                    </div>
+
+                    <!-- Unreviewed applications -->
+                    <div v-else class="grid grid-cols-2 gap-2">
+                      <button
+                        @click="quickReview(app, 'accepted', $event)"
+                        @click.shift="openNotesModal(app, 'accepted')"
+                        class="mc-button px-2 py-1 bg-green-600 border border-green-400/30"
+                        :disabled="isProcessing === app.id"
+                        :title="'Accept'"
+                      >
+                        <span v-if="isProcessing === app.id">...</span>
+                        <span v-else class="text-sm">✓</span>
+                      </button>
+
+                      <button
+                        @click="quickReview(app, 'pending', $event)"
+                        @click.shift="openNotesModal(app, 'pending')"
+                        class="mc-button px-2 py-1 bg-yellow-600 border border-yellow-400/30"
+                        :disabled="isProcessing === app.id"
+                        :title="'Pending'"
+                      >
+                        <span v-if="isProcessing === app.id">...</span>
+                        <span v-else class="text-sm">•</span>
+                      </button>
+
+                      <button
+                        @click="quickReview(app, 'rejected', $event)"
+                        @click.shift="openNotesModal(app, 'rejected')"
+                        class="mc-button px-2 py-1 bg-red-600 border border-red-400/30"
+                        :disabled="isProcessing === app.id"
+                        :title="'Reject'"
+                      >
+                        <span v-if="isProcessing === app.id">...</span>
+                        <span v-else class="text-sm">✕</span>
+                      </button>
+
+                      <button
+                        @click="confirmDelete(app.id)"
+                        class="mc-button danger px-2 py-1 border border-white/20"
+                        :disabled="isDeleting === app.id"
+                        :title="'Delete'"
+                      >
+                        <span v-if="isDeleting === app.id">...</span>
+                        <span v-else class="text-sm">🗑</span>
                       </button>
                     </div>
                   </td>
@@ -302,21 +345,21 @@
       </Transition>
     </Teleport>
     
-    <!-- Edit Modal -->
+    <!-- Notes Modal -->
     <Teleport to="body">
-      <Transition name="fade" mode="out-in">
-        <div v-if="showEditModal">
-          <AdminEditModal
-            :show="showEditModal"
-            :application="selectedApplication"
-            @close="closeEditModal"
-            @save="handleSaveChanges"
-          />
-        </div>
+      <Transition name="fade">
+        <NotesModal
+          v-if="showNotesModal"
+          :show="showNotesModal"
+          :application="selectedApplication"
+          :initial-status="notesModalStatus"
+          @close="showNotesModal = false"
+          @save="handleNotesSave"
+        />
       </Transition>
     </Teleport>
-    
-    <!-- Notes Modal -->
+
+    <!-- Notes Display Modal -->
     <div v-if="showNotesModal" class="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
       <div class="mc-container max-w-lg w-full animate-scale-in">
         <div class="flex justify-between items-center mb-4">
@@ -349,15 +392,16 @@
   </div>
 </template>
 
-<script setup>
+ <script setup>
 import { ref, onMounted, onUnmounted, nextTick, inject, computed, watch } from 'vue';
 import { gsap } from 'gsap';
 import api from '../services/api';
 import { useRouter } from 'vue-router';
-import AdminEditModal from '../components/AdminEditModal.vue';
+import NotesModal from '../components/NotesModal.vue';
 
 const router = useRouter();
 const confirmation = inject('confirmation');
+const notification = inject('notification');
 
 // UI state
 const isLoading = ref(false);
@@ -375,13 +419,16 @@ const adminContainerRef = ref(null);
 const isDeleting = ref(null); // Track which row is being deleted
 const isProcessing = ref(null); // Track which application is being processed (review/unreview)
 
-// Edit modal state
-const showEditModal = ref(false);
-const selectedApplication = ref(null);
-const isSubmittingReview = ref(false);
-
 // Notes modal state
-const showNotesModal = ref(null);
+const showNotesModal = ref(false);
+const notesModalApp = ref(null);
+const notesModalStatus = ref('');
+const notesModalNotes = ref('');
+const selectedApplication = ref(null); // For notes display
+
+// Undo state
+const lastAction = ref(null);
+const UNDO_TIMEOUT = 10000; // 10 seconds
 
 // Add to script setup section, after the existing state declarations:
 const sliderHandle = ref(null);
@@ -584,40 +631,150 @@ function getAgeColor(age) {
   return 'text-white';
 }
 
-// Open edit modal
-function openEditModal(application) {
-  selectedApplication.value = application;
-  showEditModal.value = true;
-}
-
-// Show notes modal
+// Show notes display modal
 function showNotes(application) {
   selectedApplication.value = application;
   showNotesModal.value = true;
 }
 
-// Handle save changes
-async function handleSaveChanges(updatedApplication) {
-  isSubmittingReview.value = true;
+// Quick review (normal click)
+async function quickReview(app, status, event) {
+  if (event.shiftKey) return; // Let shift handler take over
+
+  isProcessing.value = app.id;
+  const previousStatus = app.isReviewed ? app.acceptanceStatus : 'unreviewed';
+
   try {
     const response = await api.reviewApplication(
-      updatedApplication.id,
+      app.id,
       authenticatedPassword.value,
-      updatedApplication.reviewNotes || '',
-      updatedApplication.acceptanceStatus || 'pending'
+      '', // No notes
+      status
     );
-    if (response && response.success) {
+
+    if (response.success) {
+      // Store undo action
+      lastAction.value = {
+        appId: app.id,
+        previousStatus,
+        newStatus: status,
+        timestamp: Date.now()
+      };
+
+      // Show success notification with undo
+      notification.success(
+        `Application marked as ${status}`,
+        () => handleUndo()
+      );
+
       await refreshData();
-      showEditModal.value = false;
-    } else {
-      errorMessage.value = 'Failed to save changes. Please try again.';
     }
   } catch (error) {
-    console.error('Error saving changes:', error);
-    errorMessage.value = 'Failed to save changes. Please try again.';
+    notification.error(`Failed to mark as ${status}`);
   } finally {
-    isSubmittingReview.value = false;
+    isProcessing.value = null;
   }
+}
+
+// Open notes modal (shift+click)
+function openNotesModal(app, status) {
+  notesModalApp.value = app;
+  notesModalStatus.value = status;
+  notesModalNotes.value = app.reviewNotes || '';
+  showNotesModal.value = true;
+}
+
+// Save from notes modal
+async function handleNotesSave(notes, status) {
+  if (!notesModalApp.value) return;
+
+  isProcessing.value = notesModalApp.value.id;
+  const previousStatus = notesModalApp.value.isReviewed
+    ? notesModalApp.value.acceptanceStatus
+    : 'unreviewed';
+
+  try {
+    const response = await api.reviewApplication(
+      notesModalApp.value.id,
+      authenticatedPassword.value,
+      notes,
+      status
+    );
+
+    if (response.success) {
+      lastAction.value = {
+        appId: notesModalApp.value.id,
+        previousStatus,
+        newStatus: status,
+        timestamp: Date.now()
+      };
+
+      notification.success(
+        `Application marked as ${status}`,
+        () => handleUndo()
+      );
+
+      showNotesModal.value = false;
+      await refreshData();
+    }
+  } catch (error) {
+    notification.error('Failed to save review');
+  } finally {
+    isProcessing.value = null;
+  }
+}
+
+// Undo last action
+async function handleUndo() {
+  if (!lastAction.value) return;
+
+  const { appId, previousStatus } = lastAction.value;
+  isProcessing.value = appId;
+
+  try {
+    if (previousStatus === 'unreviewed') {
+      // Unreview application
+      const response = await api.unreviewApplication(
+        appId,
+        authenticatedPassword.value
+      );
+      if (response.success) {
+        notification.success('Action undone - application unreviewed');
+      }
+    } else {
+      // Revert to previous status
+      const app = applications.value.find(a => a.id === appId);
+      const response = await api.reviewApplication(
+        appId,
+        authenticatedPassword.value,
+        app?.reviewNotes || '',
+        previousStatus
+      );
+      if (response.success) {
+        notification.success(`Action undone - reverted to ${previousStatus}`);
+      }
+    }
+
+    lastAction.value = null;
+    await refreshData();
+  } catch (error) {
+    notification.error('Failed to undo action');
+  } finally {
+    isProcessing.value = null;
+  }
+}
+
+// Global Ctrl+Z listener
+function setupUndoListener() {
+  window.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+      e.preventDefault();
+      if (lastAction.value &&
+          Date.now() - lastAction.value.timestamp < UNDO_TIMEOUT) {
+        handleUndo();
+      }
+    }
+  });
 }
 
 // Confirm unreview
@@ -637,20 +794,21 @@ async function confirmUnreview(applicationId) {
 // Unreview application
 async function unreviewApplication(applicationId) {
   isProcessing.value = applicationId;
-  
+
   try {
     const response = await api.unreviewApplication(
       applicationId,
       authenticatedPassword.value
     );
-    
+
     if (response.success) {
+      notification.success('Application unreviewed');
       await refreshData();
     } else {
       errorMessage.value = 'Failed to unreview application. Please try again.';
     }
   } catch (error) {
-    errorMessage.value = 'Failed to unreview application. Please try again.';
+    notification.error('Failed to unreview application');
   } finally {
     isProcessing.value = null;
   }
@@ -673,42 +831,20 @@ async function confirmDelete(applicationId) {
 // Delete application
 async function deleteApplication(applicationId) {
   isDeleting.value = applicationId;
-  
+
   try {
     const response = await api.deleteApplication(applicationId, authenticatedPassword.value);
-    
+
     if (response.success) {
+      notification.success('Application deleted');
       await refreshData();
     } else {
       errorMessage.value = 'Failed to delete application. Please try again.';
     }
   } catch (error) {
-    errorMessage.value = 'Failed to delete application. Please try again.';
+    notification.error('Failed to delete application');
   } finally {
     isDeleting.value = null;
-  }
-}
-
-// Quick accept/reject for pending reviewed applications
-async function quickSetAcceptance(app, status) {
-  if (!app || !app.id) return;
-  isProcessing.value = app.id;
-  try {
-    const response = await api.reviewApplication(
-      app.id,
-      authenticatedPassword.value,
-      app.reviewNotes || '',
-      status
-    );
-    if (response && response.success) {
-      await refreshData();
-    } else {
-      errorMessage.value = 'Failed to update status. Please try again.';
-    }
-  } catch (err) {
-    errorMessage.value = 'Failed to update status. Please try again.';
-  } finally {
-    isProcessing.value = null;
   }
 }
 
@@ -1073,8 +1209,9 @@ watch([searchQuery, searchFields], () => {
 async function exportToCsv() {
   try {
     await api.exportApplications(authenticatedPassword.value);
+    notification.success('CSV export started');
   } catch (error) {
-    errorMessage.value = 'Failed to export applications. Please try again.';
+    notification.error('Failed to export applications');
   }
 }
 
@@ -1115,11 +1252,13 @@ onMounted(() => {
   if (passwordInput.value) {
     passwordInput.value.focus();
   }
-  
+
   // Set up tooltip event listeners
   setupTooltipListeners();
   // Global search hotkey
   window.addEventListener('keydown', handleGlobalKeydown);
+  // Undo listener
+  setupUndoListener();
 });
 
 // Format date for display
@@ -1181,11 +1320,6 @@ const handleExport = async () => {
 const handleRefresh = async () => {
   refreshData();
 };
-
-function closeEditModal() {
-  showEditModal.value = false;
-  selectedApplication.value = null;
-}
 </script>
 
 <style scoped>

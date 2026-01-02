@@ -202,21 +202,97 @@
           </div>
           
           <!-- Actions -->
-          <div class="grid grid-cols-2 gap-2">
-            <button 
-              @click="openReviewModal(app)" 
-              class="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-bold transition-all"
-              :class="app.isReviewed ? 'bg-black/70 text-white hover:bg-black/60' : 'bg-green-600 text-white hover:bg-green-500 shadow-lg shadow-green-900/20'"
-            >
-              <span v-if="app.isReviewed">Edit Review</span>
-              <span v-else>Review App</span>
-            </button>
-            
-            <button 
+          <!-- Reviewed with Accepted or Rejected status -->
+          <div v-if="app.isReviewed && (app.acceptanceStatus === 'accepted' || app.acceptanceStatus === 'rejected')" class="grid grid-cols-2 gap-2">
+            <button
               @click="confirmDelete(app.id)"
-              class="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 text-xs font-bold transition-all"
+              class="py-2 rounded-lg bg-red-500/10 text-red-400 border border-red-500/20 text-xs font-bold"
+              :disabled="isDeleting === app.id"
             >
-              Delete
+              {{ isDeleting === app.id ? '...' : 'Delete' }}
+            </button>
+
+            <button
+              @click="confirmUnreview(app.id)"
+              class="py-2 rounded-lg bg-black/30 text-white border border-white/30 text-xs font-bold"
+              :disabled="isProcessing === app.id"
+            >
+              {{ isProcessing === app.id ? '...' : 'Unreview' }}
+            </button>
+          </div>
+
+          <!-- Reviewed with Pending status -->
+          <div v-else-if="app.isReviewed && app.acceptanceStatus === 'pending'" class="grid grid-cols-2 gap-2">
+            <button
+              @click="quickReview(app, 'accepted', $event)"
+              @click.shift="openNotesModal(app, 'accepted')"
+              class="py-2 rounded-lg bg-green-600 text-white border border-green-400/30 text-xs font-bold"
+              :disabled="isProcessing === app.id"
+            >
+              {{ isProcessing === app.id ? '...' : 'Accept' }}
+            </button>
+
+            <button
+              @click="quickReview(app, 'rejected', $event)"
+              @click.shift="openNotesModal(app, 'rejected')"
+              class="py-2 rounded-lg bg-red-600 text-white border border-red-400/30 text-xs font-bold"
+              :disabled="isProcessing === app.id"
+            >
+              {{ isProcessing === app.id ? '...' : 'Reject' }}
+            </button>
+
+            <button
+              @click="confirmDelete(app.id)"
+              class="col-span-2 py-2 rounded-lg bg-red-500/10 text-red-400 border border-red-500/20 text-xs font-bold"
+              :disabled="isDeleting === app.id"
+            >
+              {{ isDeleting === app.id ? '...' : 'Delete' }}
+            </button>
+
+            <button
+              v-if="app.reviewNotes"
+              @click="showNotes(app)"
+              class="col-span-2 py-2 rounded-lg bg-black/30 text-white border border-white/30 text-xs font-bold"
+            >
+              Notes
+            </button>
+          </div>
+
+          <!-- Unreviewed applications -->
+          <div v-else class="grid grid-cols-2 gap-2">
+            <button
+              @click="quickReview(app, 'accepted', $event)"
+              @click.shift="openNotesModal(app, 'accepted')"
+              class="py-2 rounded-lg bg-green-600 text-white border border-green-400/30 text-xs font-bold"
+              :disabled="isProcessing === app.id"
+            >
+              {{ isProcessing === app.id ? '...' : 'Accept' }}
+            </button>
+
+            <button
+              @click="quickReview(app, 'pending', $event)"
+              @click.shift="openNotesModal(app, 'pending')"
+              class="py-2 rounded-lg bg-yellow-600 text-white border border-yellow-400/30 text-xs font-bold"
+              :disabled="isProcessing === app.id"
+            >
+              {{ isProcessing === app.id ? '...' : 'Pending' }}
+            </button>
+
+            <button
+              @click="quickReview(app, 'rejected', $event)"
+              @click.shift="openNotesModal(app, 'rejected')"
+              class="py-2 rounded-lg bg-red-600 text-white border border-red-400/30 text-xs font-bold"
+              :disabled="isProcessing === app.id"
+            >
+              {{ isProcessing === app.id ? '...' : 'Reject' }}
+            </button>
+
+            <button
+              @click="confirmDelete(app.id)"
+              class="py-2 rounded-lg bg-red-500/10 text-red-400 border border-red-500/20 text-xs font-bold"
+              :disabled="isDeleting === app.id"
+            >
+              {{ isDeleting === app.id ? '...' : 'Delete' }}
             </button>
           </div>
         </div>
@@ -233,117 +309,31 @@
       </div>
     </div>
 
-    <!-- Review Modal -->
-    <Transition name="fade">
-      <div v-if="showReviewModal" class="fixed inset-0 z-[100] flex items-end sm:items-center justify-center" role="dialog">
-        <!-- Backdrop -->
-        <div class="absolute inset-0 bg-black/90" @click="showReviewModal = false"></div>
-        
-        <!-- Modal Content -->
-        <div class="relative w-full sm:w-[500px] bg-[#0a0a0a] sm:rounded-xl rounded-t-xl border-t sm:border border-white/10 shadow-2xl flex flex-col max-h-[90vh] animate-slide-up">
-           <!-- Modal Header -->
-           <div class="px-5 py-4 border-b border-white/5 flex justify-between items-center shrink-0">
-             <h3 class="text-lg font-bold text-white">Review Application</h3>
-             <button @click="showReviewModal = false" class="text-gray-400 hover:text-white p-1">✕</button>
-           </div>
-           
-           <!-- Modal Body (Scrollable) -->
-           <div class="p-5 overflow-y-auto custom-scrollbar space-y-5">
-             <div v-if="selectedApplication">
-               <div class="flex items-center gap-3 p-3 bg-black/50 rounded-lg border border-white/5">
-                 <div class="h-10 w-10 bg-primary-900/50 rounded flex items-center justify-center text-primary-300 font-bold">
-                   {{ selectedApplication.minecraftUsername.charAt(0).toUpperCase() }}
-                 </div>
-                 <div>
-                   <div class="text-white font-bold">{{ selectedApplication.minecraftUsername }}</div>
-                   <div class="text-xs text-gray-400">{{ selectedApplication.discordUsername }}</div>
-                 </div>
-               </div>
-               
-               <!-- Full Content View for Context -->
-               <div class="space-y-3 mt-4">
-                  <div>
-                    <span class="text-xs uppercase text-gray-500 font-bold tracking-wider">Favorite Thing About MC</span>
-                    <p class="text-sm text-gray-300 mt-1 p-3 bg-black/50 rounded-lg border border-white/5">{{ selectedApplication.favoriteAboutMinecraft }}</p>
-                  </div>
-                  <div>
-                    <span class="text-xs uppercase text-gray-500 font-bold tracking-wider">Understanding of SMP</span>
-                    <p class="text-sm text-gray-300 mt-1 p-3 bg-black/50 rounded-lg border border-white/5">{{ selectedApplication.understandingOfSMP }}</p>
-                  </div>
-               </div>
-
-               <!-- Status Selection -->
-               <div class="mt-4">
-                 <label class="block text-xs uppercase text-gray-500 font-bold tracking-wider mb-2">Decision</label>
-                 <div class="grid grid-cols-3 gap-2">
-                    <button @click="setAcceptanceStatus('accepted')" 
-                      class="py-2.5 rounded-lg border text-sm font-bold transition-all"
-                      :class="acceptanceStatus === 'accepted' ? 'bg-green-600 border-green-500 text-white' : 'bg-transparent border-white/10 text-gray-400 hover:bg-white/5'">
-                      Accept
-                    </button>
-                    <button @click="setAcceptanceStatus('pending')" 
-                      class="py-2.5 rounded-lg border text-sm font-bold transition-all"
-                      :class="acceptanceStatus === 'pending' ? 'bg-orange-600 border-orange-500 text-white' : 'bg-transparent border-white/10 text-gray-400 hover:bg-white/5'">
-                      Pending
-                    </button>
-                    <button @click="setAcceptanceStatus('rejected')" 
-                      class="py-2.5 rounded-lg border text-sm font-bold transition-all"
-                      :class="acceptanceStatus === 'rejected' ? 'bg-red-600 border-red-500 text-white' : 'bg-transparent border-white/10 text-gray-400 hover:bg-white/5'">
-                      Reject
-                    </button>
-                 </div>
-               </div>
-
-               <!-- Notes -->
-               <div class="mt-4">
-                 <label class="block text-xs uppercase text-gray-500 font-bold tracking-wider mb-2">Internal Notes</label>
-                 <textarea 
-                   v-model="reviewNotes"
-                   rows="3" 
-                   class="w-full bg-black/50 border border-white/10 rounded-lg p-3 text-sm text-white focus:outline-none focus:border-primary-500/50"
-                   placeholder="Add notes privately..."
-                 ></textarea>
-               </div>
-
-               <!-- Unreview Action -->
-               <div v-if="selectedApplication.isReviewed" class="mt-4 pt-4 border-t border-white/5">
-                 <button 
-                   @click="unreviewApplication"
-                   class="text-xs text-red-400 hover:text-red-300 flex items-center gap-1"
-                   :disabled="isUnreviewing"
-                 >
-                   <span v-if="isUnreviewing">Processing...</span>
-                   <span v-else>Reset Application Status (Unreview)</span>
-                 </button>
-               </div>
-             </div>
-           </div>
-           
-           <!-- Modal Footer -->
-           <div class="p-4 border-t border-white/5 bg-black/70 shrink-0 flex gap-3">
-             <button @click="showReviewModal = false" class="flex-1 py-3 rounded-lg text-gray-400 hover:bg-white/5 text-sm font-bold">Cancel</button>
-             <button 
-               @click="submitReview" 
-               class="flex-[2] py-3 rounded-lg bg-white text-black hover:bg-gray-200 text-sm font-bold shadow-lg flex justify-center items-center"
-               :disabled="isSubmittingReview"
-             >
-               <span v-if="isSubmittingReview" class="animate-spin mr-2 h-4 w-4 border-2 border-black border-t-transparent rounded-full"></span>
-               {{ isSubmittingReview ? 'Saving...' : 'Save Decision' }}
-             </button>
-           </div>
-        </div>
-      </div>
-    </Transition>
+    <!-- Notes Modal -->
+    <Teleport to="body">
+      <Transition name="fade">
+        <NotesModal
+          v-if="showNotesModal"
+          :show="showNotesModal"
+          :application="notesModalApp"
+          :initial-status="notesModalStatus"
+          @close="showNotesModal = false"
+          @save="handleNotesSave"
+        />
+      </Transition>
+    </Teleport>
 
   </div>
 </template>
 
-<script setup>
-import { ref, nextTick, inject, computed } from 'vue';
+ <script setup>
+import { ref, nextTick, inject, computed, onMounted, onUnmounted } from 'vue';
 import { gsap } from 'gsap';
 import api from '../services/api';
+import NotesModal from '../components/NotesModal.vue';
 
 const confirmation = inject('confirmation');
+const notification = inject('notification');
 
 // UI state
 const isLoading = ref(true);
@@ -368,13 +358,15 @@ const adminContainerRef = ref(null);
 const isDeleting = ref(null);
 const isProcessing = ref(null);
 
-// Review modal state
-const showReviewModal = ref(false);
-const selectedApplication = ref(null);
-const reviewNotes = ref('');
-const acceptanceStatus = ref('pending');
-const isSubmittingReview = ref(false);
-const isUnreviewing = ref(false);
+// Notes modal state
+const showNotesModal = ref(false);
+const notesModalApp = ref(null);
+const notesModalStatus = ref('');
+const notesModalNotes = ref('');
+
+// Undo state
+const lastAction = ref(null);
+const UNDO_TIMEOUT = 10000; // 10 seconds
 
 // Search state
 const searchQuery = ref('');
@@ -468,90 +460,183 @@ function formatDate(dateString, includeTime = false) {
 async function copyToClipboard(text) {
   try {
     await navigator.clipboard.writeText(text);
-    // Could add a toast notification here
   } catch (err) {
     console.error('Failed to copy', err);
   }
 }
 
-function openReviewModal(application) {
-  selectedApplication.value = application;
-  reviewNotes.value = application.reviewNotes || '';
-  acceptanceStatus.value = application.acceptanceStatus || 'pending';
-  showReviewModal.value = true;
-  showMenu.value = false; // close menu if open
-}
+// Quick review (normal click)
+async function quickReview(app, status, event) {
+  if (event.shiftKey) return; // Let shift handler take over
 
-function setAcceptanceStatus(status) {
-  acceptanceStatus.value = status;
-}
+  isProcessing.value = app.id;
+  const previousStatus = app.isReviewed ? app.acceptanceStatus : 'unreviewed';
 
-async function submitReview() {
-  if (!selectedApplication.value) return;
-  
-  isSubmittingReview.value = true;
-  isProcessing.value = selectedApplication.value.id;
-  
   try {
     const response = await api.reviewApplication(
-      selectedApplication.value.id,
+      app.id,
       authenticatedPassword.value,
-      reviewNotes.value,
-      acceptanceStatus.value
+      '', // No notes
+      status
     );
-    
-    if (response && response.success) {
-      const index = applications.value.findIndex(app => app.id === selectedApplication.value.id);
-      if (index !== -1) {
-        // Optimistic update
-        const updatedApp = { ...applications.value[index], ...response.data };
-        // Ensure status logic if backend didn't return it perfectly immediately (safety)
-        if (!updatedApp.acceptanceStatus) updatedApp.acceptanceStatus = acceptanceStatus.value;
-        
-        applications.value[index] = updatedApp;
-      }
-      showReviewModal.value = false;
+
+    if (response.success) {
+      // Store undo action
+      lastAction.value = {
+        appId: app.id,
+        previousStatus,
+        newStatus: status,
+        timestamp: Date.now()
+      };
+
+      // Show success notification with undo
+      notification.success(
+        `Application marked as ${status}`,
+        () => handleUndo()
+      );
+
+      await refreshData();
     }
   } catch (error) {
-    console.error('Error submitting review:', error);
-    errorMessage.value = 'Failed to submit review.';
+    notification.error(`Failed to mark as ${status}`);
   } finally {
-    isSubmittingReview.value = false;
     isProcessing.value = null;
   }
 }
 
-async function unreviewApplication() {
-  if (!selectedApplication.value) return;
-  
-  const confirmed = await confirmation.confirm({
-    title: 'Unreview Application',
-    message: 'Are you sure you want to reset the review status? This will mark it as new.',
-    confirmText: 'Reset',
-    cancelText: 'Cancel'
-  });
-  
-  if (!confirmed) return;
+// Open notes modal (shift+click)
+function openNotesModal(app, status) {
+  notesModalApp.value = app;
+  notesModalStatus.value = status;
+  notesModalNotes.value = app.reviewNotes || '';
+  showNotesModal.value = true;
+}
 
-  isUnreviewing.value = true;
+// Save from notes modal
+async function handleNotesSave(notes, status) {
+  if (!notesModalApp.value) return;
+
+  isProcessing.value = notesModalApp.value.id;
+  const previousStatus = notesModalApp.value.isReviewed
+    ? notesModalApp.value.acceptanceStatus
+    : 'unreviewed';
+
+  try {
+    const response = await api.reviewApplication(
+      notesModalApp.value.id,
+      authenticatedPassword.value,
+      notes,
+      status
+    );
+
+    if (response.success) {
+      lastAction.value = {
+        appId: notesModalApp.value.id,
+        previousStatus,
+        newStatus: status,
+        timestamp: Date.now()
+      };
+
+      notification.success(
+        `Application marked as ${status}`,
+        () => handleUndo()
+      );
+
+      showNotesModal.value = false;
+      await refreshData();
+    }
+  } catch (error) {
+    notification.error('Failed to save review');
+  } finally {
+    isProcessing.value = null;
+  }
+}
+
+// Undo last action
+async function handleUndo() {
+  if (!lastAction.value) return;
+
+  const { appId, previousStatus } = lastAction.value;
+  isProcessing.value = appId;
+
+  try {
+    if (previousStatus === 'unreviewed') {
+      // Unreview application
+      const response = await api.unreviewApplication(
+        appId,
+        authenticatedPassword.value
+      );
+      if (response.success) {
+        notification.success('Action undone - application unreviewed');
+      }
+    } else {
+      // Revert to previous status
+      const app = applications.value.find(a => a.id === appId);
+      const response = await api.reviewApplication(
+        appId,
+        authenticatedPassword.value,
+        app?.reviewNotes || '',
+        previousStatus
+      );
+      if (response.success) {
+        notification.success(`Action undone - reverted to ${previousStatus}`);
+      }
+    }
+
+    lastAction.value = null;
+    await refreshData();
+  } catch (error) {
+    notification.error('Failed to undo action');
+  } finally {
+    isProcessing.value = null;
+  }
+}
+
+// Global Ctrl+Z listener
+function setupUndoListener() {
+  window.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+      e.preventDefault();
+      if (lastAction.value &&
+          Date.now() - lastAction.value.timestamp < UNDO_TIMEOUT) {
+        handleUndo();
+      }
+    }
+  });
+}
+
+async function confirmUnreview(applicationId) {
+  const confirmed = await confirmation.confirm({
+    title: 'Remove Review Status',
+    message: 'Are you sure you want to remove the reviewed status?',
+    confirmText: 'Remove',
+    cancelText: 'Keep'
+  });
+
+  if (confirmed) {
+    unreviewApplication(applicationId);
+  }
+}
+
+async function unreviewApplication(applicationId) {
+  isProcessing.value = applicationId;
+
   try {
     const response = await api.unreviewApplication(
-      selectedApplication.value.id,
+      applicationId,
       authenticatedPassword.value
     );
-    
+
     if (response.success) {
-       const index = applications.value.findIndex(app => app.id === selectedApplication.value.id);
-       if (index !== -1) {
-         applications.value[index] = response.data;
-       }
-       showReviewModal.value = false;
+      notification.success('Application unreviewed');
+      await refreshData();
+    } else {
+      errorMessage.value = 'Failed to unreview application. Please try again.';
     }
-  } catch(error) {
-    console.error('Error unreviewing', error);
-    errorMessage.value = 'Failed to unreview application';
+  } catch (error) {
+    notification.error('Failed to unreview application');
   } finally {
-    isUnreviewing.value = false;
+    isProcessing.value = null;
   }
 }
 
@@ -573,11 +658,12 @@ async function deleteApplication(applicationId) {
   try {
     const response = await api.deleteApplication(applicationId, authenticatedPassword.value);
     if (response.success) {
+      notification.success('Application deleted');
       applications.value = applications.value.filter(app => app.id !== applicationId);
-      totalApplications.value--; 
+      totalApplications.value--;
     }
   } catch (error) {
-    errorMessage.value = 'Failed to delete application.';
+    notification.error('Failed to delete application');
   } finally {
     isDeleting.value = null;
   }
@@ -587,8 +673,9 @@ async function exportToCsv() {
   try {
     await api.exportApplications(authenticatedPassword.value);
     showMenu.value = false;
+    notification.success('CSV export started');
   } catch (error) {
-    errorMessage.value = 'Failed to export applications.';
+    notification.error('Failed to export applications');
   }
 }
 
@@ -663,6 +750,14 @@ async function logout() {
   password.value = '';
   applications.value = [];
 }
+
+onMounted(() => {
+  setupUndoListener();
+});
+
+onUnmounted(() => {
+  // Clean up is handled by Vue's reactivity system
+});
 </script>
 
 <style scoped>

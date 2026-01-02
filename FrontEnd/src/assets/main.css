@@ -83,5 +83,21 @@
   .fade-enter-active, .fade-leave-active { transition: opacity 0.25s; }
   .fade-enter-from, .fade-leave-to { opacity: 0; }
 
+  /* Notification toast animations */
+  .toast-enter-active {
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .toast-leave-active {
+    transition: all 0.2s ease-in;
+  }
+  .toast-enter-from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  .toast-leave-to {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+
   .elevated { @apply shadow-glass; }
 }
