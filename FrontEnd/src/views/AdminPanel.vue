@@ -38,7 +38,7 @@
       <div ref="adminContainerRef" class="admin-panel mc-panel w-full h-full flex flex-col">
         <!-- Fixed top bar -->
         <div class="flex justify-between items-center px-6 py-4 bg-black/70 sticky top-0 z-20 border-b border-white/10">
-          <h2 class="mc-title mb-0">Applications Dashboard</h2>
+          <h2 class="mc-title mb-0">TYFORMS</h2>
           
           <div class="flex gap-2">
             <button @click="handleRefresh" class="mc-button text-sm">
