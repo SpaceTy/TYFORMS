@@ -7,6 +7,7 @@ import App from './App.vue'
 import ApplicationForm from './views/ApplicationForm.vue'
 import AdminPanel from './views/AdminPanel.vue'
 import MobileAdminPanel from './views/MobileAdminPanel.vue'
+import AdminStats from './views/AdminStats.vue'
 import ThankYou from './views/ThankYou.vue'
 
 // Import CSS
@@ -22,6 +23,7 @@ const router = createRouter({
     { path: '/', component: ApplicationForm },
     { path: '/admin', component: AdminPanel },
     { path: '/admin/mobile', component: MobileAdminPanel },
+    { path: '/admin/stats', component: AdminStats },
     { path: '/thank-you', component: ThankYou },
   ],
 })

@@ -67,6 +67,9 @@
                 <button @click="exportToCsv(); showMenu = false" class="w-full text-left px-4 py-3 hover:bg-white/5 flex items-center gap-2 text-sm">
                   <span>⬇</span> Export CSV
                 </button>
+                <button @click="goToStats(); showMenu = false" class="w-full text-left px-4 py-3 hover:bg-white/5 flex items-center gap-2 text-sm">
+                  <span>◫</span> Statistics
+                </button>
                 <div class="h-px bg-black/30 my-1"></div>
                 <button @click="logout" class="w-full text-left px-4 py-3 hover:bg-red-500/20 text-red-400 flex items-center gap-2 text-sm">
                   <span>➜</span> Logout
@@ -330,8 +333,10 @@
 import { ref, nextTick, inject, computed, onMounted, onUnmounted } from 'vue';
 import { gsap } from 'gsap';
 import api from '../services/api';
+import { useRouter } from 'vue-router';
 import NotesModal from '../components/NotesModal.vue';
 
+const router = useRouter();
 const confirmation = inject('confirmation');
 const notification = inject('notification');
 
@@ -417,6 +422,7 @@ async function authenticate() {
     
     if (response.success) {
       authenticatedPassword.value = password.value;
+      sessionStorage.setItem('adminPassword', authenticatedPassword.value);
       
       gsap.to('.login-container', {
         opacity: 0,
@@ -747,8 +753,13 @@ function handleScroll(event) {
 async function logout() {
   isAuthenticated.value = false;
   authenticatedPassword.value = '';
+  sessionStorage.removeItem('adminPassword');
   password.value = '';
   applications.value = [];
+}
+
+function goToStats() {
+  router.push('/admin/stats');
 }
 
 onMounted(() => {
