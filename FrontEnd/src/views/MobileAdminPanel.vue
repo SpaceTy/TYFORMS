@@ -196,11 +196,25 @@
           <div class="space-y-2 mb-4 bg-black/40 p-2 rounded text-xs text-gray-300">
             <div>
               <span class="text-primary-400 font-bold uppercase text-[10px]">Favorite Thing</span>
-              <p class="line-clamp-2 leading-relaxed">{{ app.favoriteAboutMinecraft }}</p>
+              <p
+                class="leading-relaxed cursor-pointer transition-colors"
+                :class="{
+                  'line-clamp-2': !isExpanded(app.id, 'favoriteAboutMinecraft'),
+                  'text-gray-100': isExpanded(app.id, 'favoriteAboutMinecraft')
+                }"
+                @click="toggleExpand(app.id, 'favoriteAboutMinecraft')"
+              >{{ app.favoriteAboutMinecraft }}</p>
             </div>
             <div>
               <span class="text-primary-400 font-bold uppercase text-[10px]">SMP Understanding</span>
-              <p class="line-clamp-2 leading-relaxed">{{ app.understandingOfSMP }}</p>
+              <p
+                class="leading-relaxed cursor-pointer transition-colors"
+                :class="{
+                  'line-clamp-2': !isExpanded(app.id, 'understandingOfSMP'),
+                  'text-gray-100': isExpanded(app.id, 'understandingOfSMP')
+                }"
+                @click="toggleExpand(app.id, 'understandingOfSMP')"
+              >{{ app.understandingOfSMP }}</p>
             </div>
           </div>
           
@@ -372,6 +386,25 @@ const notesModalNotes = ref('');
 // Undo state
 const lastAction = ref(null);
 const UNDO_TIMEOUT = 10000; // 10 seconds
+
+// Expanded text fields state
+const expandedFields = ref(new Map());
+
+function toggleExpand(appId, field) {
+  const key = `${appId}-${field}`;
+  const map = expandedFields.value;
+  if (map.has(key)) {
+    map.delete(key);
+  } else {
+    map.set(key, true);
+  }
+  // Trigger reactivity by replacing the ref
+  expandedFields.value = new Map(map);
+}
+
+function isExpanded(appId, field) {
+  return expandedFields.value.has(`${appId}-${field}`);
+}
 
 // Search state
 const searchQuery = ref('');
