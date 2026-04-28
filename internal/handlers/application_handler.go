@@ -168,6 +168,40 @@ func (h *ApplicationHandler) GetApplications(w http.ResponseWriter, r *http.Requ
 	json.NewEncoder(w).Encode(response)
 }
 
+// GetApplicationStatistics handles retrieving aggregate application statistics (admin only).
+func (h *ApplicationHandler) GetApplicationStatistics(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var auth struct {
+		Password string `json:"password"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&auth); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if auth.Password != h.adminPassword {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	stats, err := h.store.GetApplicationStatistics()
+	if err != nil {
+		http.Error(w, "Error retrieving application statistics", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	response := map[string]interface{}{
+		"success": true,
+		"data":    stats,
+	}
+	json.NewEncoder(w).Encode(response)
+}
+
 // ExportApplications handles exporting applications to CSV (admin only)
 func (h *ApplicationHandler) ExportApplications(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {

@@ -47,6 +47,18 @@ export default {
       throw error;
     }
   },
+
+  async getApplicationStats(adminPassword) {
+    try {
+      const response = await api.post('/api/application/stats', {
+        password: adminPassword
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching application statistics:', error);
+      throw error;
+    }
+  },
   
   async exportApplications(adminPassword) {
     try {

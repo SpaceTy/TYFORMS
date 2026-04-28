@@ -49,6 +49,10 @@
             <button @click="handleExport" class="mc-button text-sm secondary">
               Export CSV
             </button>
+
+            <button @click="goToStats" class="mc-button text-sm secondary">
+              Statistics
+            </button>
             
             <button @click="handleLogout" class="mc-button text-sm danger">
               Logout
@@ -580,6 +584,7 @@ async function authenticate() {
     if (response.success) {
       // Store the authenticated password for future API requests
       authenticatedPassword.value = password.value;
+      sessionStorage.setItem('adminPassword', authenticatedPassword.value);
       
       // Animate login transition
       gsap.to('.login-container', {
@@ -1225,6 +1230,7 @@ function logout() {
     onComplete: () => {
       isAuthenticated.value = false;
       authenticatedPassword.value = '';
+      sessionStorage.removeItem('adminPassword');
       applications.value = [];
       
       // After view changes, animate the login form in
@@ -1319,6 +1325,10 @@ const handleExport = async () => {
 
 const handleRefresh = async () => {
   refreshData();
+};
+
+const goToStats = () => {
+  router.push('/admin/stats');
 };
 </script>
 

@@ -6,6 +6,7 @@ import (
 	"log"
 	"strconv"
 	"strings"
+	"time"
 	"tyforms/internal/models"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -347,6 +348,79 @@ func (s *SQLiteStore) DeleteApplication(id int) error {
 		return fmt.Errorf("error deleting application: %w", err)
 	}
 	return nil
+}
+
+// GetApplicationStatistics retrieves aggregate statistics for admin reporting.
+func (s *SQLiteStore) GetApplicationStatistics() (*models.ApplicationStatistics, error) {
+	stats := &models.ApplicationStatistics{}
+
+	aggregateQuery := `
+	SELECT
+		COUNT(*) AS total_applications,
+		COALESCE(SUM(CASE WHEN is_reviewed = 1 THEN 1 ELSE 0 END), 0) AS reviewed_applications,
+		COALESCE(SUM(CASE WHEN is_reviewed = 0 THEN 1 ELSE 0 END), 0) AS unreviewed_applications,
+		COALESCE(SUM(CASE WHEN acceptance_status = 'accepted' THEN 1 ELSE 0 END), 0) AS accepted_applications,
+		COALESCE(SUM(CASE WHEN acceptance_status = 'pending' THEN 1 ELSE 0 END), 0) AS pending_applications,
+		COALESCE(SUM(CASE WHEN acceptance_status = 'rejected' THEN 1 ELSE 0 END), 0) AS rejected_applications,
+		COALESCE(SUM(CASE WHEN joined_discord = 1 THEN 1 ELSE 0 END), 0) AS joined_discord_count,
+		COALESCE(AVG(age), 0) AS average_age
+	FROM applications`
+
+	if err := s.db.QueryRow(aggregateQuery).Scan(
+		&stats.TotalApplications,
+		&stats.ReviewedApplications,
+		&stats.UnreviewedApplications,
+		&stats.AcceptedApplications,
+		&stats.PendingApplications,
+		&stats.RejectedApplications,
+		&stats.JoinedDiscordCount,
+		&stats.AverageAge,
+	); err != nil {
+		return nil, fmt.Errorf("error getting aggregate statistics: %w", err)
+	}
+
+	type dailyRow struct {
+		Date  string
+		Count int
+	}
+
+	recentRows := make(map[string]int)
+	recentQuery := `
+	SELECT DATE(submission_date) AS submission_day, COUNT(*) AS total
+	FROM applications
+	WHERE submission_date >= datetime('now', '-6 days')
+	GROUP BY submission_day
+	ORDER BY submission_day ASC`
+
+	rows, err := s.db.Query(recentQuery)
+	if err != nil {
+		return nil, fmt.Errorf("error getting recent submissions: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var row dailyRow
+		if err := rows.Scan(&row.Date, &row.Count); err != nil {
+			return nil, fmt.Errorf("error scanning recent submission row: %w", err)
+		}
+		recentRows[row.Date] = row.Count
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating recent submission rows: %w", err)
+	}
+
+	stats.RecentSubmissions = make([]models.DailySubmissionCount, 0, 7)
+	now := time.Now().UTC()
+	for dayOffset := 6; dayOffset >= 0; dayOffset-- {
+		currentDay := now.AddDate(0, 0, -dayOffset).Format("2006-01-02")
+		stats.RecentSubmissions = append(stats.RecentSubmissions, models.DailySubmissionCount{
+			Date:  currentDay,
+			Count: recentRows[currentDay],
+		})
+	}
+
+	return stats, nil
 }
 
 // Close closes the database connection

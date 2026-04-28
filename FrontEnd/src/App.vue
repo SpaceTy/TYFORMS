@@ -112,7 +112,7 @@ provide('notification', {
 
 // Check if we're on admin route to adjust layout
 const isAdminRoute = computed(() => {
-  return route.path === '/admin';
+  return route.path.startsWith('/admin');
 });
 
 onMounted(() => {

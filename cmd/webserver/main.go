@@ -77,6 +77,7 @@ func main() {
 	http.HandleFunc("/api/auth/verify", handler.VerifyPassword)
 	http.HandleFunc("/api/application", handler.CreateApplication)
 	http.HandleFunc("/api/application/list", handler.GetApplications)
+	http.HandleFunc("/api/application/stats", handler.GetApplicationStatistics)
 	http.HandleFunc("/api/application/export", handler.ExportApplications)
 	http.HandleFunc("/api/application/review", handler.ReviewApplication)
 	http.HandleFunc("/api/application/delete", handler.DeleteApplication)
