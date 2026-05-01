@@ -1039,6 +1039,12 @@ async function refreshData() {
   isLoading.value = true;
   errorMessage.value = '';
 
+  // Save scroll position before refresh
+  const savedScrollTop = (() => {
+    const container = document.querySelector('.overflow-auto');
+    return container ? container.scrollTop : 0;
+  })();
+
   // Reset to page 1
   currentPage.value = 1;
 
@@ -1095,11 +1101,10 @@ async function refreshData() {
           setupTooltipListeners();
         });
       } else {
-        // Scroll to top when refreshing
         nextTick(() => {
           const container = document.querySelector('.overflow-auto');
-          if (container) {
-            container.scrollTo({ top: 0, behavior: 'smooth' });
+          if (container && savedScrollTop > 0) {
+            container.scrollTop = savedScrollTop;
           }
           setupTooltipListeners();
         });
