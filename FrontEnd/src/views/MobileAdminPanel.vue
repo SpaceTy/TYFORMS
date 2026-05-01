@@ -455,7 +455,9 @@ async function authenticate() {
     
     if (response.success) {
       authenticatedPassword.value = password.value;
-      sessionStorage.setItem('adminPassword', authenticatedPassword.value);
+      if (response.token) {
+        localStorage.setItem('adminToken', response.token);
+      }
       
       gsap.to('.login-container', {
         opacity: 0,
@@ -786,7 +788,7 @@ function handleScroll(event) {
 async function logout() {
   isAuthenticated.value = false;
   authenticatedPassword.value = '';
-  sessionStorage.removeItem('adminPassword');
+  localStorage.removeItem('adminToken');
   password.value = '';
   applications.value = [];
 }
@@ -795,7 +797,23 @@ function goToStats() {
   router.push('/admin/stats');
 }
 
+async function tryRestoreSession() {
+  const storedToken = localStorage.getItem('adminToken');
+  if (!storedToken) return;
+
+  const result = await api.validateToken();
+  if (result.valid) {
+    isAuthenticated.value = true;
+    nextTick(() => {
+      refreshData();
+    });
+  } else {
+    localStorage.removeItem('adminToken');
+  }
+}
+
 onMounted(() => {
+  tryRestoreSession();
   setupUndoListener();
 });
 

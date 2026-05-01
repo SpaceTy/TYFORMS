@@ -2,7 +2,9 @@ package handlers
 
 import (
 	"bytes"
+	"crypto/rand"
 	"encoding/csv"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -10,23 +12,89 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 	"tyforms/internal/database"
 	"tyforms/internal/models"
 )
 
+const sessionTokenDuration = 30 * 24 * time.Hour
+
 // ApplicationHandler handles all application-related HTTP requests
 type ApplicationHandler struct {
 	store         *database.SQLiteStore
 	adminPassword string
+	sessions      map[string]time.Time
+	mu            sync.Mutex
 }
 
 // NewApplicationHandler creates a new ApplicationHandler
 func NewApplicationHandler(store *database.SQLiteStore, adminPassword string) *ApplicationHandler {
-	return &ApplicationHandler{
+	h := &ApplicationHandler{
 		store:         store,
 		adminPassword: adminPassword,
+		sessions:      make(map[string]time.Time),
 	}
+	go h.cleanupSessions()
+	return h
+}
+
+func (h *ApplicationHandler) generateToken() string {
+	b := make([]byte, 32)
+	rand.Read(b)
+	return hex.EncodeToString(b)
+}
+
+func (h *ApplicationHandler) createSession() string {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	token := h.generateToken()
+	h.sessions[token] = time.Now().Add(sessionTokenDuration)
+	return token
+}
+
+func (h *ApplicationHandler) isValidToken(token string) bool {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	expiry, ok := h.sessions[token]
+	if !ok {
+		return false
+	}
+	if time.Now().After(expiry) {
+		delete(h.sessions, token)
+		return false
+	}
+	return true
+}
+
+func (h *ApplicationHandler) revokeToken(token string) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	delete(h.sessions, token)
+}
+
+func (h *ApplicationHandler) cleanupSessions() {
+	ticker := time.NewTicker(1 * time.Hour)
+	for range ticker.C {
+		h.mu.Lock()
+		now := time.Now()
+		for token, expiry := range h.sessions {
+			if now.After(expiry) {
+				delete(h.sessions, token)
+			}
+		}
+		h.mu.Unlock()
+	}
+}
+
+func (h *ApplicationHandler) checkAuth(password, token string) bool {
+	if password != "" && password == h.adminPassword {
+		return true
+	}
+	if token != "" && h.isValidToken(token) {
+		return true
+	}
+	return false
 }
 
 // CreateApplication handles the creation of a new application
@@ -100,6 +168,7 @@ func (h *ApplicationHandler) GetApplications(w http.ResponseWriter, r *http.Requ
 	// Parse request with pagination and search parameters
 	var request struct {
 		Password string   `json:"password"`
+		Token    string   `json:"token"`
 		Query    string   `json:"query"`
 		Fields   []string `json:"fields"`
 		Page     int      `json:"page"`
@@ -111,8 +180,8 @@ func (h *ApplicationHandler) GetApplications(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	// Check admin password
-	if request.Password != h.adminPassword {
+	// Check admin password or token
+	if !h.checkAuth(request.Password, request.Token) {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
@@ -177,13 +246,14 @@ func (h *ApplicationHandler) GetApplicationStatistics(w http.ResponseWriter, r *
 
 	var auth struct {
 		Password string `json:"password"`
+		Token    string `json:"token"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&auth); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	if auth.Password != h.adminPassword {
+	if !h.checkAuth(auth.Password, auth.Token) {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
@@ -209,16 +279,17 @@ func (h *ApplicationHandler) ExportApplications(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	// Check admin password
+	// Check admin password or token
 	var auth struct {
 		Password string `json:"password"`
+		Token    string `json:"token"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&auth); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	if auth.Password != h.adminPassword {
+	if !h.checkAuth(auth.Password, auth.Token) {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
@@ -279,6 +350,7 @@ func (h *ApplicationHandler) ReviewApplication(w http.ResponseWriter, r *http.Re
 
 	var request struct {
 		Password         string `json:"password"`
+		Token            string `json:"token"`
 		ID               int    `json:"id"`
 		Notes            string `json:"notes"`
 		AcceptanceStatus string `json:"acceptance_status"`
@@ -289,7 +361,7 @@ func (h *ApplicationHandler) ReviewApplication(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	if request.Password != h.adminPassword {
+	if !h.checkAuth(request.Password, request.Token) {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
@@ -324,6 +396,7 @@ func (h *ApplicationHandler) UnreviewApplication(w http.ResponseWriter, r *http.
 
 	var request struct {
 		Password string `json:"password"`
+		Token    string `json:"token"`
 		ID       int    `json:"id"`
 	}
 
@@ -332,7 +405,7 @@ func (h *ApplicationHandler) UnreviewApplication(w http.ResponseWriter, r *http.
 		return
 	}
 
-	if request.Password != h.adminPassword {
+	if !h.checkAuth(request.Password, request.Token) {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
@@ -366,6 +439,7 @@ func (h *ApplicationHandler) DeleteApplication(w http.ResponseWriter, r *http.Re
 
 	var request struct {
 		Password string `json:"password"`
+		Token    string `json:"token"`
 		ID       int    `json:"id"`
 	}
 
@@ -374,7 +448,7 @@ func (h *ApplicationHandler) DeleteApplication(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	if request.Password != h.adminPassword {
+	if !h.checkAuth(request.Password, request.Token) {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
@@ -387,7 +461,7 @@ func (h *ApplicationHandler) DeleteApplication(w http.ResponseWriter, r *http.Re
 	w.WriteHeader(http.StatusOK)
 }
 
-// VerifyPassword handles password verification requests
+// VerifyPassword handles password verification requests and returns a session token
 func (h *ApplicationHandler) VerifyPassword(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -402,14 +476,40 @@ func (h *ApplicationHandler) VerifyPassword(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
+	success := auth.Password == h.adminPassword
 	response := struct {
-		Success bool `json:"success"`
+		Success bool   `json:"success"`
+		Token   string `json:"token,omitempty"`
 	}{
-		Success: auth.Password == h.adminPassword,
+		Success: success,
+	}
+
+	if success {
+		response.Token = h.createSession()
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
+}
+
+// ValidateToken checks if a session token is still valid
+func (h *ApplicationHandler) ValidateToken(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req struct {
+		Token string `json:"token"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	valid := h.isValidToken(req.Token)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]bool{"valid": valid})
 }
 
 // Helper functions

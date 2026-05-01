@@ -184,7 +184,9 @@ async function authenticate() {
 
     isAuthenticated.value = true;
     authError.value = '';
-    sessionStorage.setItem('adminPassword', password.value);
+    if (response.token) {
+      localStorage.setItem('adminToken', response.token);
+    }
     await loadStats();
   } catch (error) {
     authError.value = 'Authentication error. Please try again.';
@@ -207,7 +209,7 @@ async function loadStats() {
   } catch (error) {
     if (error?.response?.status === 401) {
       isAuthenticated.value = false;
-      sessionStorage.removeItem('adminPassword');
+      localStorage.removeItem('adminToken');
       errorMessage.value = '';
       return;
     }
@@ -225,23 +227,33 @@ function logout() {
   isAuthenticated.value = false;
   password.value = '';
   stats.value = null;
-  sessionStorage.removeItem('adminPassword');
+  localStorage.removeItem('adminToken');
   router.push('/admin');
 }
 
-onMounted(() => {
-  const savedPassword = sessionStorage.getItem('adminPassword');
-  if (savedPassword) {
-    password.value = savedPassword;
+async function tryRestoreSession() {
+  const storedToken = localStorage.getItem('adminToken');
+  if (!storedToken) return;
+
+  const result = await api.validateToken();
+  if (result.valid) {
     isAuthenticated.value = true;
     loadStats();
-    return;
+    return true;
+  } else {
+    localStorage.removeItem('adminToken');
+    return false;
   }
+}
 
-  nextTick(() => {
-    if (passwordInput.value) {
-      passwordInput.value.focus();
-    }
-  });
+onMounted(async () => {
+  const restored = await tryRestoreSession();
+  if (!restored) {
+    nextTick(() => {
+      if (passwordInput.value) {
+        passwordInput.value.focus();
+      }
+    });
+  }
 });
 </script>

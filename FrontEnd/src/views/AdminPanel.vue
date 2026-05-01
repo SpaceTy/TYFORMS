@@ -582,9 +582,10 @@ async function authenticate() {
     const response = await api.verifyAdminPassword(password.value);
     
     if (response.success) {
-      // Store the authenticated password for future API requests
       authenticatedPassword.value = password.value;
-      sessionStorage.setItem('adminPassword', authenticatedPassword.value);
+      if (response.token) {
+        localStorage.setItem('adminToken', response.token);
+      }
       
       // Animate login transition
       gsap.to('.login-container', {
@@ -1230,7 +1231,7 @@ function logout() {
     onComplete: () => {
       isAuthenticated.value = false;
       authenticatedPassword.value = '';
-      sessionStorage.removeItem('adminPassword');
+      localStorage.removeItem('adminToken');
       applications.value = [];
       
       // After view changes, animate the login form in
@@ -1252,12 +1253,33 @@ function logout() {
   });
 }
 
-// Add to mounted hook to set up event listeners
-onMounted(() => {
-  // Focus password input when mounted
-  if (passwordInput.value) {
-    passwordInput.value.focus();
+// Auto-login with stored token on mount
+async function tryRestoreSession() {
+  const storedToken = localStorage.getItem('adminToken');
+  if (!storedToken) return;
+
+  const result = await api.validateToken();
+  if (result.valid) {
+    isAuthenticated.value = true;
+    nextTick(() => {
+      refreshData();
+      setupTooltipListeners();
+    });
+  } else {
+    localStorage.removeItem('adminToken');
   }
+}
+
+onMounted(() => {
+  // Try to restore session from stored token
+  tryRestoreSession();
+
+  // Focus password input when mounted (if not auto-authenticated)
+  nextTick(() => {
+    if (!isAuthenticated.value && passwordInput.value) {
+      passwordInput.value.focus();
+    }
+  });
 
   // Set up tooltip event listeners
   setupTooltipListeners();

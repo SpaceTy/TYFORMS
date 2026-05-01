@@ -75,6 +75,7 @@ func main() {
 	// Set up routes
 	log.Printf("Setting up HTTP routes")
 	http.HandleFunc("/api/auth/verify", handler.VerifyPassword)
+	http.HandleFunc("/api/auth/validate", handler.ValidateToken)
 	http.HandleFunc("/api/application", handler.CreateApplication)
 	http.HandleFunc("/api/application/list", handler.GetApplications)
 	http.HandleFunc("/api/application/stats", handler.GetApplicationStatistics)
