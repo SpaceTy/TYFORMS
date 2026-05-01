@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"tyforms/internal/config"
 	"tyforms/internal/database"
 	"tyforms/internal/handlers"
@@ -20,6 +21,13 @@ type spaHandler struct {
 // on the filesystem. If a file is found, it will be served. If not, the
 // file located at the index path will be served to handle SPA routing.
 func (h spaHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	// Set cache headers
+	if strings.HasPrefix(r.URL.Path, "/assets/") {
+		w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+	} else {
+		w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+	}
+
 	// Get the absolute path to prevent directory traversal
 	path := filepath.Join(h.staticPath, r.URL.Path)
 
