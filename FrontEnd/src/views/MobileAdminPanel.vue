@@ -7,15 +7,28 @@
         
         <form @submit.prevent="authenticate" class="space-y-5">
           <div class="space-y-2">
+            <label for="username" class="text-sm font-medium text-gray-300">Username</label>
+            <input
+              id="username"
+              v-model="username"
+              type="text"
+              class="w-full bg-black/70 border border-white/20 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all placeholder-gray-500"
+              placeholder="Username (optional)"
+              autocomplete="username"
+            />
+          </div>
+
+          <div class="space-y-2">
             <label for="password" class="text-sm font-medium text-gray-300">Password</label>
-            <input 
-              id="password" 
-              v-model="password" 
-              type="password" 
+            <input
+              id="password"
+              v-model="password"
+              type="password"
               class="w-full bg-black/70 border border-white/20 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all placeholder-gray-500"
               placeholder="Enter admin password"
               required
               ref="passwordInput"
+              autocomplete="current-password"
             />
           </div>
           
@@ -70,9 +83,13 @@
                 <button @click="goToStats(); showMenu = false" class="w-full text-left px-4 py-3 hover:bg-white/5 flex items-center gap-2 text-sm">
                   <span>◫</span> Statistics
                 </button>
+                <button @click="showAdminsModal = true; showMenu = false" class="w-full text-left px-4 py-3 hover:bg-white/5 flex items-center gap-2 text-sm">
+                  <span>⚙</span> Manage Admins
+                </button>
                 <div class="h-px bg-black/30 my-1"></div>
                 <button @click="logout" class="w-full text-left px-4 py-3 hover:bg-red-500/20 text-red-400 flex items-center gap-2 text-sm">
                   <span>➜</span> Logout
+                  <span v-if="adminUsername" class="ml-auto text-xs text-gray-500">{{ adminUsername }}</span>
                 </button>
               </div>
             </div>
@@ -340,6 +357,9 @@
       </Transition>
     </Teleport>
 
+    <!-- Admin Account Management Modal -->
+    <AdminManagementModal v-if="showAdminsModal" @close="showAdminsModal = false" />
+
   </div>
 </template>
 
@@ -349,6 +369,7 @@ import { gsap } from 'gsap';
 import api from '../services/api';
 import { useRouter } from 'vue-router';
 import NotesModal from '../components/NotesModal.vue';
+import AdminManagementModal from '../components/AdminManagementModal.vue';
 
 const router = useRouter();
 const confirmation = inject('confirmation');
@@ -370,12 +391,15 @@ const totalPages = ref(0);
 
 // Authentication state
 const isAuthenticated = ref(false);
+const username = ref(api.getUsername());
+const adminUsername = ref(api.getUsername());
 const password = ref('');
 const authError = ref('');
 const authenticatedPassword = ref('');
 const adminContainerRef = ref(null);
 const isDeleting = ref(null);
 const isProcessing = ref(null);
+const showAdminsModal = ref(false);
 
 // Notes modal state
 const showNotesModal = ref(false);
@@ -451,14 +475,12 @@ function toggleSearch() {
 // Authenticate user
 async function authenticate() {
   try {
-    const response = await api.verifyAdminPassword(password.value);
-    
+    const response = await api.login(username.value.trim(), password.value);
+
     if (response.success) {
-      authenticatedPassword.value = password.value;
-      if (response.token) {
-        localStorage.setItem('adminToken', response.token);
-      }
-      
+      authenticatedPassword.value = '';
+      adminUsername.value = api.getUsername();
+
       gsap.to('.login-container', {
         opacity: 0,
         y: -20,
@@ -467,18 +489,22 @@ async function authenticate() {
           isAuthenticated.value = true;
           password.value = '';
           authError.value = '';
-          
+
           nextTick(() => {
             refreshData();
           });
         }
       });
     } else {
-      authError.value = 'Invalid password';
+      authError.value = 'Invalid username or password';
       gsap.fromTo('.login-container', { x: -5 }, { x: 5, duration: 0.1, repeat: 3, yoyo: true });
     }
   } catch (error) {
-    authError.value = 'Authentication error. Please try again.';
+    if (error?.response?.status === 401) {
+      authError.value = 'Invalid username or password';
+    } else {
+      authError.value = 'Authentication error. Please try again.';
+    }
   }
 }
 
@@ -788,7 +814,8 @@ function handleScroll(event) {
 async function logout() {
   isAuthenticated.value = false;
   authenticatedPassword.value = '';
-  localStorage.removeItem('adminToken');
+  await api.logout();
+  adminUsername.value = api.getUsername();
   password.value = '';
   applications.value = [];
 }
@@ -798,17 +825,13 @@ function goToStats() {
 }
 
 async function tryRestoreSession() {
-  const storedToken = localStorage.getItem('adminToken');
-  if (!storedToken) return;
-
   const result = await api.validateToken();
   if (result.valid) {
+    adminUsername.value = api.getUsername();
     isAuthenticated.value = true;
     nextTick(() => {
       refreshData();
     });
-  } else {
-    localStorage.removeItem('adminToken');
   }
 }
 

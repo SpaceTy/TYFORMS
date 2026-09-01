@@ -9,15 +9,28 @@
       
       <form @submit.prevent="authenticate" class="space-y-6">
         <div class="form-group">
+          <label for="username" class="mc-label">Username</label>
+          <input
+            id="username"
+            v-model="username"
+            type="text"
+            class="mc-input"
+            placeholder="Username (leave empty for admin password)"
+            autocomplete="username"
+          />
+        </div>
+
+        <div class="form-group">
           <label for="password" class="mc-label">Password</label>
-          <input 
-            id="password" 
-            v-model="password" 
-            type="password" 
+          <input
+            id="password"
+            v-model="password"
+            type="password"
             class="mc-input"
             placeholder="Enter admin password"
             required
             ref="passwordInput"
+            autocomplete="current-password"
           />
         </div>
         
@@ -39,8 +52,15 @@
         <!-- Fixed top bar -->
         <div class="flex justify-between items-center px-6 py-4 bg-black/70 sticky top-0 z-20 border-b border-white/10">
           <h2 class="mc-title mb-0">TYFORMS</h2>
-          
-          <div class="flex gap-2">
+
+          <div class="flex gap-2 items-center">
+            <span v-if="adminUsername" class="text-xs text-neutral-400 mr-1" title="Signed in as">
+              {{ adminUsername }}
+            </span>
+            <button @click="showAdminsModal = true" class="mc-button text-sm secondary">
+              Admins
+            </button>
+
             <button @click="handleRefresh" class="mc-button text-sm">
               <span v-if="isLoading">Loading...</span>
               <span v-else>Refresh</span>
@@ -393,6 +413,9 @@
         </div>
       </div>
     </div>
+
+    <!-- Admin Account Management Modal -->
+    <AdminManagementModal v-if="showAdminsModal" @close="showAdminsModal = false" />
   </div>
 </template>
 
@@ -402,6 +425,7 @@ import { gsap } from 'gsap';
 import api from '../services/api';
 import { useRouter } from 'vue-router';
 import NotesModal from '../components/NotesModal.vue';
+import AdminManagementModal from '../components/AdminManagementModal.vue';
 
 const router = useRouter();
 const confirmation = inject('confirmation');
@@ -415,13 +439,16 @@ const applications = ref([]);
 
 // Authentication state
 const isAuthenticated = ref(false);
+const username = ref(api.getUsername());
+const adminUsername = ref(api.getUsername());
 const password = ref('');
 const authError = ref('');
 const passwordInput = ref(null);
-const authenticatedPassword = ref(''); // Store authenticated password for subsequent requests
+const authenticatedPassword = ref(''); // Legacy fallback only; token is preferred
 const adminContainerRef = ref(null);
 const isDeleting = ref(null); // Track which row is being deleted
 const isProcessing = ref(null); // Track which application is being processed (review/unreview)
+const showAdminsModal = ref(false);
 
 // Notes modal state
 const showNotesModal = ref(false);
@@ -579,14 +606,12 @@ onUnmounted(() => {
 // Authenticate user
 async function authenticate() {
   try {
-    const response = await api.verifyAdminPassword(password.value);
-    
+    const response = await api.login(username.value.trim(), password.value);
+
     if (response.success) {
-      authenticatedPassword.value = password.value;
-      if (response.token) {
-        localStorage.setItem('adminToken', response.token);
-      }
-      
+      authenticatedPassword.value = '';
+      adminUsername.value = api.getUsername();
+
       // Animate login transition
       gsap.to('.login-container', {
         opacity: 0,
@@ -615,8 +640,8 @@ async function authenticate() {
         }
       });
     } else {
-      authError.value = 'Invalid password';
-      
+      authError.value = 'Invalid username or password';
+
       // Shake animation for incorrect password
       gsap.to('.login-container', {
         x: [-10, 10, -10, 10, -5, 5, -2, 2, 0],
@@ -625,7 +650,11 @@ async function authenticate() {
       });
     }
   } catch (error) {
-    authError.value = 'Authentication error. Please try again.';
+    if (error?.response?.status === 401) {
+      authError.value = 'Invalid username or password';
+    } else {
+      authError.value = 'Authentication error. Please try again.';
+    }
   }
 }
 
@@ -1236,9 +1265,10 @@ function logout() {
     onComplete: () => {
       isAuthenticated.value = false;
       authenticatedPassword.value = '';
-      localStorage.removeItem('adminToken');
+      api.logout();
+      adminUsername.value = api.getUsername();
       applications.value = [];
-      
+
       // After view changes, animate the login form in
       nextTick(() => {
         gsap.from('.login-container', {
@@ -1260,18 +1290,14 @@ function logout() {
 
 // Auto-login with stored token on mount
 async function tryRestoreSession() {
-  const storedToken = localStorage.getItem('adminToken');
-  if (!storedToken) return;
-
   const result = await api.validateToken();
   if (result.valid) {
+    adminUsername.value = api.getUsername();
     isAuthenticated.value = true;
     nextTick(() => {
       refreshData();
       setupTooltipListeners();
     });
-  } else {
-    localStorage.removeItem('adminToken');
   }
 }
 

@@ -5,6 +5,18 @@
 
       <form @submit.prevent="authenticate" class="space-y-6">
         <div class="form-group">
+          <label for="username" class="mc-label">Username</label>
+          <input
+            id="username"
+            v-model="username"
+            type="text"
+            class="mc-input"
+            placeholder="Username (leave empty for admin password)"
+            autocomplete="username"
+          />
+        </div>
+
+        <div class="form-group">
           <label for="password" class="mc-label">Password</label>
           <input
             id="password"
@@ -14,6 +26,7 @@
             placeholder="Enter admin password"
             required
             ref="passwordInput"
+            autocomplete="current-password"
           />
         </div>
 
@@ -141,6 +154,7 @@ import api from '../services/api';
 
 const router = useRouter();
 const isAuthenticated = ref(false);
+const username = ref(api.getUsername());
 const password = ref('');
 const authError = ref('');
 const errorMessage = ref('');
@@ -176,20 +190,22 @@ function formatShortDate(dateString) {
 
 async function authenticate() {
   try {
-    const response = await api.verifyAdminPassword(password.value);
+    const response = await api.login(username.value.trim(), password.value);
     if (!response.success) {
-      authError.value = 'Invalid password';
+      authError.value = 'Invalid username or password';
       return;
     }
 
     isAuthenticated.value = true;
     authError.value = '';
-    if (response.token) {
-      localStorage.setItem('adminToken', response.token);
-    }
+    password.value = '';
     await loadStats();
   } catch (error) {
-    authError.value = 'Authentication error. Please try again.';
+    if (error?.response?.status === 401) {
+      authError.value = 'Invalid username or password';
+    } else {
+      authError.value = 'Authentication error. Please try again.';
+    }
   }
 }
 
@@ -200,7 +216,7 @@ async function loadStats() {
   errorMessage.value = '';
 
   try {
-    const response = await api.getApplicationStats(password.value);
+    const response = await api.getApplicationStats();
     if (response?.success) {
       stats.value = response.data;
       return;
@@ -227,23 +243,18 @@ function logout() {
   isAuthenticated.value = false;
   password.value = '';
   stats.value = null;
-  localStorage.removeItem('adminToken');
+  api.logout();
   router.push('/admin');
 }
 
 async function tryRestoreSession() {
-  const storedToken = localStorage.getItem('adminToken');
-  if (!storedToken) return;
-
   const result = await api.validateToken();
   if (result.valid) {
     isAuthenticated.value = true;
     loadStats();
     return true;
-  } else {
-    localStorage.removeItem('adminToken');
-    return false;
   }
+  return false;
 }
 
 onMounted(async () => {

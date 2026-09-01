@@ -76,21 +76,36 @@ func main() {
 	defer store.Close()
 	log.Printf("Database connection established successfully")
 
+	// Seed the initial admin account from the configured password (no-op if admins already exist)
+	if err := store.EnsureSeedAdmin(cfg.Admin.Password); err != nil {
+		log.Fatalf("Error seeding initial admin account: %v", err)
+	}
+
 	// Initialize handler
 	log.Printf("Initializing application handler")
 	handler := handlers.NewApplicationHandler(store, cfg.Admin.Password)
 
 	// Set up routes
 	log.Printf("Setting up HTTP routes")
-	http.HandleFunc("/api/auth/verify", handler.VerifyPassword)
+	http.HandleFunc("/api/auth/login", handler.Login)
+	http.HandleFunc("/api/auth/verify", handler.Login) // legacy endpoint, same behavior
 	http.HandleFunc("/api/auth/validate", handler.ValidateToken)
+	http.HandleFunc("/api/auth/refresh", handler.RefreshSession)
+	http.HandleFunc("/api/auth/logout", handler.Logout)
+	http.HandleFunc("/api/auth/admins/list", handler.ListAdmins)
+	http.HandleFunc("/api/auth/admins/create", handler.CreateAdmin)
+	http.HandleFunc("/api/auth/admins/delete", handler.DeleteAdmin)
+	http.HandleFunc("/api/auth/admins/password", handler.ChangeAdminPassword)
 	http.HandleFunc("/api/application", handler.CreateApplication)
 	http.HandleFunc("/api/application/list", handler.GetApplications)
 	http.HandleFunc("/api/application/stats", handler.GetApplicationStatistics)
 	http.HandleFunc("/api/application/export", handler.ExportApplications)
 	http.HandleFunc("/api/application/review", handler.ReviewApplication)
+	http.HandleFunc("/api/application/update", handler.UpdateApplication)
 	http.HandleFunc("/api/application/delete", handler.DeleteApplication)
 	http.HandleFunc("/api/application/unreview", handler.UnreviewApplication)
+	http.HandleFunc("/api/application/history", handler.GetApplicationHistory)
+	http.HandleFunc("/api/application/changes", handler.GetRecentChanges)
 
 	// Serve static files and handle SPA routing
 	spa := spaHandler{staticPath: "wwwroot", indexPath: "index.html"}

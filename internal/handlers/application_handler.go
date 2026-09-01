@@ -12,20 +12,20 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 	"tyforms/internal/database"
 	"tyforms/internal/models"
 )
 
-const sessionTokenDuration = 30 * 24 * time.Hour
+const (
+	accessTokenDuration  = 1 * time.Hour
+	refreshTokenDuration = 30 * 24 * time.Hour
+)
 
 // ApplicationHandler handles all application-related HTTP requests
 type ApplicationHandler struct {
 	store         *database.SQLiteStore
 	adminPassword string
-	sessions      map[string]time.Time
-	mu            sync.Mutex
 }
 
 // NewApplicationHandler creates a new ApplicationHandler
@@ -33,7 +33,6 @@ func NewApplicationHandler(store *database.SQLiteStore, adminPassword string) *A
 	h := &ApplicationHandler{
 		store:         store,
 		adminPassword: adminPassword,
-		sessions:      make(map[string]time.Time),
 	}
 	go h.cleanupSessions()
 	return h
@@ -45,56 +44,54 @@ func (h *ApplicationHandler) generateToken() string {
 	return hex.EncodeToString(b)
 }
 
-func (h *ApplicationHandler) createSession() string {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-	token := h.generateToken()
-	h.sessions[token] = time.Now().Add(sessionTokenDuration)
-	return token
-}
-
-func (h *ApplicationHandler) isValidToken(token string) bool {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-	expiry, ok := h.sessions[token]
-	if !ok {
-		return false
-	}
-	if time.Now().After(expiry) {
-		delete(h.sessions, token)
-		return false
-	}
-	return true
-}
-
-func (h *ApplicationHandler) revokeToken(token string) {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-	delete(h.sessions, token)
-}
-
 func (h *ApplicationHandler) cleanupSessions() {
 	ticker := time.NewTicker(1 * time.Hour)
 	for range ticker.C {
-		h.mu.Lock()
-		now := time.Now()
-		for token, expiry := range h.sessions {
-			if now.After(expiry) {
-				delete(h.sessions, token)
-			}
+		if err := h.store.DeleteExpiredSessions(); err != nil {
+			log.Printf("Error cleaning up expired sessions: %v", err)
 		}
-		h.mu.Unlock()
 	}
 }
 
-func (h *ApplicationHandler) checkAuth(password, token string) bool {
+// resolveActor authenticates a request and returns the admin responsible for it.
+// Session tokens map to their admin account; the legacy config password maps to
+// the seeded root admin. Returns nil when authentication fails.
+func (h *ApplicationHandler) resolveActor(password, token string) (*models.Admin, bool) {
+	if token != "" {
+		if adminID, ok, err := h.store.GetValidSession(token, "access"); err == nil && ok {
+			admin, err := h.store.GetAdminByID(adminID)
+			if err == nil && admin != nil && admin.IsActive {
+				return admin, true
+			}
+		}
+	}
 	if password != "" && password == h.adminPassword {
-		return true
+		if admin, err := h.store.GetAdminByUsername(database.SeedAdminUsername); err == nil && admin != nil {
+			return &admin.Admin, true
+		}
+		return &models.Admin{ID: 0, Username: database.SeedAdminUsername}, true
 	}
-	if token != "" && h.isValidToken(token) {
-		return true
+	return nil, false
+}
+
+func (h *ApplicationHandler) checkAuth(password, token string) bool {
+	_, ok := h.resolveActor(password, token)
+	return ok
+}
+
+// createSessionPair issues a new access + refresh token pair for an admin
+func (h *ApplicationHandler) createSessionPair(adminID int) (access, refresh string, expiresAt time.Time, err error) {
+	access = h.generateToken()
+	refresh = h.generateToken()
+	expiresAt = time.Now().UTC().Add(accessTokenDuration)
+
+	if err = h.store.CreateSession(access, adminID, "access", expiresAt); err != nil {
+		return "", "", time.Time{}, err
 	}
-	return false
+	if err = h.store.CreateSession(refresh, adminID, "refresh", time.Now().UTC().Add(refreshTokenDuration)); err != nil {
+		return "", "", time.Time{}, err
+	}
+	return access, refresh, expiresAt, nil
 }
 
 // CreateApplication handles the creation of a new application
@@ -153,9 +150,82 @@ func (h *ApplicationHandler) CreateApplication(w http.ResponseWriter, r *http.Re
 	}
 	log.Printf("Successfully created application with ID: %d", app.ID)
 
+	// Root node of this application's change tree
+	appSnapshot := marshalApp(&app)
+	h.recordChange(app.ID, nil, models.ChangeActionCreate, []models.FieldChange{
+		{Field: "application", New: &appSnapshot},
+	})
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(app)
+}
+
+// recordChange persists a change tree node, logging (but not failing the
+// request) when recording itself fails
+func (h *ApplicationHandler) recordChange(applicationID int, admin *models.Admin, action string, changes []models.FieldChange) {
+	var adminID *int
+	username := "system"
+	if admin != nil {
+		id := admin.ID
+		adminID = &id
+		username = admin.Username
+	}
+	if err := h.store.RecordChange(applicationID, adminID, username, action, changes); err != nil {
+		log.Printf("Error recording %s change for application %d: %v", action, applicationID, err)
+	}
+}
+
+// marshalApp serializes an application for storage in a change entry
+func marshalApp(app *models.MinecraftApplication) string {
+	data, err := json.Marshal(app)
+	if err != nil {
+		return fmt.Sprintf(`{"id": %d}`, app.ID)
+	}
+	return string(data)
+}
+
+// stringPtr returns a pointer to the string value
+func stringPtr(s string) *string { return &s }
+
+// diffApplications compares two application states and returns the changed fields
+func diffApplications(before, after *models.MinecraftApplication) []models.FieldChange {
+	var changes []models.FieldChange
+
+	check := func(field string, oldVal, newVal string) {
+		if oldVal != newVal {
+			changes = append(changes, models.FieldChange{
+				Field: field,
+				Old:   stringPtr(oldVal),
+				New:   stringPtr(newVal),
+			})
+		}
+	}
+	deref := func(s *string) string {
+		if s == nil {
+			return ""
+		}
+		return *s
+	}
+	formatT := func(t *time.Time) string {
+		if t == nil {
+			return ""
+		}
+		return t.Format(time.RFC3339)
+	}
+
+	check("discordUsername", before.DiscordUsername, after.DiscordUsername)
+	check("minecraftUsername", before.MinecraftUsername, after.MinecraftUsername)
+	check("age", strconv.Itoa(before.Age), strconv.Itoa(after.Age))
+	check("favoriteAboutMinecraft", before.FavoriteAboutMinecraft, after.FavoriteAboutMinecraft)
+	check("understandingOfSMP", before.UnderstandingOfSMP, after.UnderstandingOfSMP)
+	check("joinedDiscord", fmt.Sprintf("%v", before.JoinedDiscord), fmt.Sprintf("%v", after.JoinedDiscord))
+	check("isReviewed", fmt.Sprintf("%v", before.IsReviewed), fmt.Sprintf("%v", after.IsReviewed))
+	check("reviewedAt", formatT(before.ReviewedAt), formatT(after.ReviewedAt))
+	check("reviewNotes", deref(before.ReviewNotes), deref(after.ReviewNotes))
+	check("acceptanceStatus", before.AcceptanceStatus, after.AcceptanceStatus)
+
+	return changes
 }
 
 // GetApplications handles retrieving all applications with search and pagination (admin only)
@@ -361,7 +431,8 @@ func (h *ApplicationHandler) ReviewApplication(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	if !h.checkAuth(request.Password, request.Token) {
+	actor, ok := h.resolveActor(request.Password, request.Token)
+	if !ok {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
@@ -371,6 +442,7 @@ func (h *ApplicationHandler) ReviewApplication(w http.ResponseWriter, r *http.Re
 		http.Error(w, "Application not found", http.StatusNotFound)
 		return
 	}
+	before := *app
 
 	app.IsReviewed = true
 	app.ReviewedAt = &time.Time{}
@@ -381,6 +453,10 @@ func (h *ApplicationHandler) ReviewApplication(w http.ResponseWriter, r *http.Re
 	if err := h.store.UpdateApplication(app); err != nil {
 		http.Error(w, "Error updating application", http.StatusInternalServerError)
 		return
+	}
+
+	if diff := diffApplications(&before, app); len(diff) > 0 {
+		h.recordChange(app.ID, actor, models.ChangeActionReview, diff)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -405,7 +481,8 @@ func (h *ApplicationHandler) UnreviewApplication(w http.ResponseWriter, r *http.
 		return
 	}
 
-	if !h.checkAuth(request.Password, request.Token) {
+	actor, ok := h.resolveActor(request.Password, request.Token)
+	if !ok {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
@@ -415,6 +492,7 @@ func (h *ApplicationHandler) UnreviewApplication(w http.ResponseWriter, r *http.
 		http.Error(w, "Application not found", http.StatusNotFound)
 		return
 	}
+	before := *app
 
 	app.IsReviewed = false
 	app.ReviewedAt = nil
@@ -424,6 +502,10 @@ func (h *ApplicationHandler) UnreviewApplication(w http.ResponseWriter, r *http.
 	if err := h.store.UpdateApplication(app); err != nil {
 		http.Error(w, "Error updating application", http.StatusInternalServerError)
 		return
+	}
+
+	if diff := diffApplications(&before, app); len(diff) > 0 {
+		h.recordChange(app.ID, actor, models.ChangeActionUnreview, diff)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -448,8 +530,15 @@ func (h *ApplicationHandler) DeleteApplication(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	if !h.checkAuth(request.Password, request.Token) {
+	actor, ok := h.resolveActor(request.Password, request.Token)
+	if !ok {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	app, err := h.store.GetApplication(request.ID)
+	if err != nil {
+		http.Error(w, "Application not found", http.StatusNotFound)
 		return
 	}
 
@@ -458,58 +547,158 @@ func (h *ApplicationHandler) DeleteApplication(w http.ResponseWriter, r *http.Re
 		return
 	}
 
+	h.recordChange(request.ID, actor, models.ChangeActionDelete, []models.FieldChange{
+		{Field: "application", Old: stringPtr(marshalApp(app))},
+	})
+
 	w.WriteHeader(http.StatusOK)
 }
 
-// VerifyPassword handles password verification requests and returns a session token
-func (h *ApplicationHandler) VerifyPassword(w http.ResponseWriter, r *http.Request) {
+// UpdateApplication handles updating application content (admin only)
+func (h *ApplicationHandler) UpdateApplication(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	var auth struct {
-		Password string `json:"password"`
+	var request struct {
+		Password               string  `json:"password"`
+		Token                  string  `json:"token"`
+		ID                     int     `json:"id"`
+		DiscordUsername        *string `json:"discordUsername"`
+		MinecraftUsername      *string `json:"minecraftUsername"`
+		Age                    *int    `json:"age"`
+		FavoriteAboutMinecraft *string `json:"favoriteAboutMinecraft"`
+		UnderstandingOfSMP     *string `json:"understandingOfSMP"`
+		JoinedDiscord          *bool   `json:"joinedDiscord"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&auth); err != nil {
+
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	success := auth.Password == h.adminPassword
-	response := struct {
-		Success bool   `json:"success"`
-		Token   string `json:"token,omitempty"`
-	}{
-		Success: success,
+	actor, ok := h.resolveActor(request.Password, request.Token)
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
 	}
 
-	if success {
-		response.Token = h.createSession()
+	app, err := h.store.GetApplication(request.ID)
+	if err != nil {
+		http.Error(w, "Application not found", http.StatusNotFound)
+		return
+	}
+	before := *app
+
+	if request.DiscordUsername != nil {
+		app.DiscordUsername = *request.DiscordUsername
+	}
+	if request.MinecraftUsername != nil {
+		app.MinecraftUsername = *request.MinecraftUsername
+	}
+	if request.Age != nil {
+		app.Age = *request.Age
+	}
+	if request.FavoriteAboutMinecraft != nil {
+		app.FavoriteAboutMinecraft = *request.FavoriteAboutMinecraft
+	}
+	if request.UnderstandingOfSMP != nil {
+		app.UnderstandingOfSMP = *request.UnderstandingOfSMP
+	}
+	if request.JoinedDiscord != nil {
+		app.JoinedDiscord = *request.JoinedDiscord
+	}
+
+	if err := h.store.UpdateApplication(app); err != nil {
+		if strings.Contains(err.Error(), "UNIQUE constraint failed: applications.minecraft_username") {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusConflict)
+			json.NewEncoder(w).Encode(map[string]string{
+				"error": "A player with this Minecraft username already exists.",
+			})
+			return
+		}
+		http.Error(w, "Error updating application", http.StatusInternalServerError)
+		return
+	}
+
+	if diff := diffApplications(&before, app); len(diff) > 0 {
+		h.recordChange(app.ID, actor, models.ChangeActionUpdate, diff)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	json.NewEncoder(w).Encode(app)
 }
 
-// ValidateToken checks if a session token is still valid
-func (h *ApplicationHandler) ValidateToken(w http.ResponseWriter, r *http.Request) {
+// GetApplicationHistory returns the change tree for one application (admin only)
+func (h *ApplicationHandler) GetApplicationHistory(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	var req struct {
-		Token string `json:"token"`
+	var request struct {
+		Password string `json:"password"`
+		Token    string `json:"token"`
+		ID       int    `json:"id"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	valid := h.isValidToken(req.Token)
+	if !h.checkAuth(request.Password, request.Token) {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	changes, err := h.store.GetApplicationChanges(request.ID)
+	if err != nil {
+		http.Error(w, "Error retrieving change history", http.StatusInternalServerError)
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]bool{"valid": valid})
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success": true,
+		"changes": changes,
+	})
+}
+
+// GetRecentChanges returns the latest changes across all applications (admin only)
+func (h *ApplicationHandler) GetRecentChanges(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var request struct {
+		Password string `json:"password"`
+		Token    string `json:"token"`
+		Limit    int    `json:"limit"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if !h.checkAuth(request.Password, request.Token) {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	changes, err := h.store.GetRecentChanges(request.Limit)
+	if err != nil {
+		http.Error(w, "Error retrieving changes", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success": true,
+		"changes": changes,
+	})
 }
 
 // Helper functions

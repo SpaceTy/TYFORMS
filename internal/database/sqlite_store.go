@@ -10,7 +10,11 @@ import (
 	"tyforms/internal/models"
 
 	_ "github.com/mattn/go-sqlite3"
+	"golang.org/x/crypto/bcrypt"
 )
+
+// SeedAdminUsername is the username of the admin account seeded from config
+const SeedAdminUsername = "admin"
 
 // SQLiteStore handles all database operations
 type SQLiteStore struct {
@@ -34,24 +38,90 @@ func NewSQLiteStore(dbPath string) (*SQLiteStore, error) {
 
 // createTables creates the necessary tables in the database
 func createTables(db *sql.DB) error {
-	query := `
-	CREATE TABLE IF NOT EXISTS applications (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		discord_username TEXT NOT NULL,
-		minecraft_username TEXT NOT NULL UNIQUE,
-		age INTEGER NOT NULL,
-		favorite_about_minecraft TEXT NOT NULL,
-		understanding_of_smp TEXT NOT NULL,
-		joined_discord BOOLEAN NOT NULL,
-		submission_date DATETIME NOT NULL,
-		is_reviewed BOOLEAN NOT NULL DEFAULT FALSE,
-		reviewed_at DATETIME,
-		review_notes TEXT,
-		acceptance_status TEXT NOT NULL DEFAULT 'pending'
-	)`
+	queries := []string{
+		`CREATE TABLE IF NOT EXISTS applications (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			discord_username TEXT NOT NULL,
+			minecraft_username TEXT NOT NULL UNIQUE,
+			age INTEGER NOT NULL,
+			favorite_about_minecraft TEXT NOT NULL,
+			understanding_of_smp TEXT NOT NULL,
+			joined_discord BOOLEAN NOT NULL,
+			submission_date DATETIME NOT NULL,
+			is_reviewed BOOLEAN NOT NULL DEFAULT FALSE,
+			reviewed_at DATETIME,
+			review_notes TEXT,
+			acceptance_status TEXT NOT NULL DEFAULT 'pending'
+		)`,
+		`CREATE TABLE IF NOT EXISTS admins (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			username TEXT NOT NULL UNIQUE,
+			password_hash TEXT NOT NULL,
+			created_at DATETIME NOT NULL,
+			is_active BOOLEAN NOT NULL DEFAULT TRUE
+		)`,
+		`CREATE TABLE IF NOT EXISTS admin_sessions (
+			token TEXT PRIMARY KEY,
+			admin_id INTEGER NOT NULL,
+			kind TEXT NOT NULL DEFAULT 'access',
+			created_at DATETIME NOT NULL,
+			expires_at DATETIME NOT NULL
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_admin_sessions_admin ON admin_sessions(admin_id)`,
+		`CREATE TABLE IF NOT EXISTS change_log (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			application_id INTEGER NOT NULL,
+			parent_id INTEGER,
+			root_id INTEGER,
+			admin_id INTEGER,
+			admin_username TEXT NOT NULL,
+			action TEXT NOT NULL,
+			changes TEXT NOT NULL,
+			created_at DATETIME NOT NULL
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_change_log_application ON change_log(application_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_change_log_root ON change_log(root_id)`,
+	}
 
-	_, err := db.Exec(query)
-	return err
+	for _, query := range queries {
+		if _, err := db.Exec(query); err != nil {
+			return fmt.Errorf("error executing table creation: %w", err)
+		}
+	}
+	return nil
+}
+
+// EnsureSeedAdmin seeds the initial admin account (username "admin") using the
+// configured admin password when no admin accounts exist yet. This keeps
+// existing deployments working after the upgrade.
+func (s *SQLiteStore) EnsureSeedAdmin(password string) error {
+	if password == "" {
+		return nil
+	}
+
+	var count int
+	if err := s.db.QueryRow(`SELECT COUNT(*) FROM admins`).Scan(&count); err != nil {
+		return fmt.Errorf("error counting admins: %w", err)
+	}
+	if count > 0 {
+		return nil
+	}
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return fmt.Errorf("error hashing seed admin password: %w", err)
+	}
+
+	_, err = s.db.Exec(
+		`INSERT INTO admins (username, password_hash, created_at, is_active) VALUES (?, ?, ?, TRUE)`,
+		SeedAdminUsername, string(hash), time.Now().UTC(),
+	)
+	if err != nil {
+		return fmt.Errorf("error creating seed admin: %w", err)
+	}
+
+	log.Printf("Seeded initial admin account %q", SeedAdminUsername)
+	return nil
 }
 
 // CreateApplication inserts a new application into the database
