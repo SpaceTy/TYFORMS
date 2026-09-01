@@ -4,10 +4,11 @@ import "time"
 
 // Admin represents an admin account
 type Admin struct {
-	ID        int       `json:"id"`
-	Username  string    `json:"username"`
-	CreatedAt time.Time `json:"createdAt"`
-	IsActive  bool      `json:"isActive"`
+	ID              int       `json:"id"`
+	Username        string    `json:"username"`
+	CreatedAt       time.Time `json:"createdAt"`
+	IsActive        bool      `json:"isActive"`
+	CanManageAdmins bool      `json:"canManageAdmins"`
 }
 
 // AdminWithHash is used internally when the password hash is needed

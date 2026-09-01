@@ -1,20 +1,11 @@
 <template>
-  <div class="h-full w-full absolute inset-0 flex items-center justify-center">
-    <div class="admin-panel mc-panel w-full h-full flex flex-col">
+  <div class="h-full w-full absolute inset-0 flex items-center justify-center md:p-4">
+    <div class="admin-panel mc-panel w-full h-full flex flex-col rounded-none border-0 bg-black shadow-none md:rounded-xl md:border md:bg-black/60 md:shadow-soft">
       <!-- Fixed top bar -->
-      <div class="flex justify-between items-center px-6 py-4 bg-black/70 sticky top-0 z-20 border-b border-white/10">
-        <h2 class="mc-title mb-0">Admin Accounts</h2>
-
-        <div class="flex gap-2 items-center">
-          <button @click="goToDashboard" class="mc-button text-sm secondary">
-            Dashboard
-          </button>
-          <ProfileMenu @logout="logout" />
-        </div>
-      </div>
+      <AdminNavbar @logout="logout" />
 
       <!-- Scrollable content -->
-      <div class="flex-grow overflow-auto p-6 bg-black/80">
+      <div class="flex-grow overflow-auto p-4 md:p-6 bg-black/80">
         <div v-if="errorMessage" class="bg-red-600/40 text-white p-3 mb-4 rounded-lg border border-red-500/30">
           {{ errorMessage }}
         </div>
@@ -63,7 +54,25 @@
                 </div>
               </div>
 
-              <div class="flex gap-2 shrink-0">
+              <div class="flex gap-3 items-center shrink-0">
+                <label
+                  class="flex items-center gap-1.5 text-xs text-neutral-300 cursor-pointer select-none"
+                  :class="{
+                    'opacity-50 cursor-not-allowed': isSelf(admin) || isTogglingPermission === admin.id,
+                    'cursor-wait': isTogglingPermission === admin.id
+                  }"
+                  :title="isSelf(admin) ? 'You cannot change your own admin-management permission' : 'Allow this admin to access and manage the admins page'"
+                >
+                  <input
+                    type="checkbox"
+                    class="mc-radio"
+                    :checked="admin.canManageAdmins"
+                    :disabled="isSelf(admin) || isTogglingPermission === admin.id"
+                    @change="toggleManage(admin, $event)"
+                  />
+                  <span>Manage Admins</span>
+                </label>
+
                 <button @click="startPasswordChange(admin)" class="mc-button text-sm secondary">
                   Password
                 </button>
@@ -135,7 +144,7 @@
 import { ref, inject, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import api from '../services/api';
-import ProfileMenu from '../components/ProfileMenu.vue';
+import AdminNavbar from '../components/AdminNavbar.vue';
 
 const SEED_USERNAME = 'admin';
 
@@ -147,10 +156,32 @@ const admins = ref([]);
 const currentAdmin = ref(null);
 const isLoading = ref(true);
 const isSubmitting = ref(false);
+const isTogglingPermission = ref(null);
 const errorMessage = ref('');
 const notice = ref('');
 const newUsername = ref('');
 const newPassword = ref('');
+
+function isSelf(admin) {
+  return currentAdmin.value && admin.id === currentAdmin.value.id;
+}
+
+async function toggleManage(admin, event) {
+  const canManage = event.target.checked;
+  isTogglingPermission.value = admin.id;
+  errorMessage.value = '';
+
+  try {
+    await api.setAdminPermissions(admin.id, canManage);
+    admin.canManageAdmins = canManage;
+    flash(`Admin-management permission ${canManage ? 'granted to' : 'removed from'} "${admin.username}".`);
+  } catch (error) {
+    event.target.checked = admin.canManageAdmins;
+    errorMessage.value = error?.response?.data?.error || 'Failed to update permissions.';
+  } finally {
+    isTogglingPermission.value = null;
+  }
+}
 
 function formatDate(dateString) {
   if (!dateString) return 'N/A';
@@ -166,10 +197,6 @@ function flash(message) {
   setTimeout(() => {
     notice.value = '';
   }, 4000);
-}
-
-function goToDashboard() {
-  router.push('/admin');
 }
 
 function logout() {
@@ -254,6 +281,10 @@ onMounted(async () => {
     return;
   }
   currentAdmin.value = result.admin || null;
+  if (!currentAdmin.value?.canManageAdmins) {
+    router.push('/admin');
+    return;
+  }
   await loadAdmins();
   isLoading.value = false;
 });

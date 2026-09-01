@@ -13,11 +13,11 @@ import (
 var ErrAdminExists = errors.New("admin username already exists")
 
 // CreateAdmin inserts a new admin account
-func (s *SQLiteStore) CreateAdmin(username, passwordHash string) (*models.Admin, error) {
+func (s *SQLiteStore) CreateAdmin(username, passwordHash string, canManageAdmins bool) (*models.Admin, error) {
 	now := time.Now().UTC()
 	result, err := s.db.Exec(
-		`INSERT INTO admins (username, password_hash, created_at, is_active) VALUES (?, ?, ?, TRUE)`,
-		username, passwordHash, now,
+		`INSERT INTO admins (username, password_hash, created_at, is_active, can_manage_admins) VALUES (?, ?, ?, TRUE, ?)`,
+		username, passwordHash, now, canManageAdmins,
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -35,10 +35,11 @@ func (s *SQLiteStore) CreateAdmin(username, passwordHash string) (*models.Admin,
 	}
 
 	return &models.Admin{
-		ID:        int(id),
-		Username:  username,
-		CreatedAt: now,
-		IsActive:  true,
+		ID:              int(id),
+		Username:        username,
+		CreatedAt:       now,
+		IsActive:        true,
+		CanManageAdmins: canManageAdmins,
 	}, nil
 }
 
@@ -46,9 +47,9 @@ func (s *SQLiteStore) CreateAdmin(username, passwordHash string) (*models.Admin,
 func (s *SQLiteStore) GetAdminByUsername(username string) (*models.AdminWithHash, error) {
 	admin := &models.AdminWithHash{}
 	err := s.db.QueryRow(
-		`SELECT id, username, password_hash, created_at, is_active FROM admins WHERE username = ?`,
+		`SELECT id, username, password_hash, created_at, is_active, can_manage_admins FROM admins WHERE username = ?`,
 		username,
-	).Scan(&admin.ID, &admin.Username, &admin.PasswordHash, &admin.CreatedAt, &admin.IsActive)
+	).Scan(&admin.ID, &admin.Username, &admin.PasswordHash, &admin.CreatedAt, &admin.IsActive, &admin.CanManageAdmins)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -62,9 +63,9 @@ func (s *SQLiteStore) GetAdminByUsername(username string) (*models.AdminWithHash
 func (s *SQLiteStore) GetAdminByID(id int) (*models.Admin, error) {
 	admin := &models.Admin{}
 	err := s.db.QueryRow(
-		`SELECT id, username, created_at, is_active FROM admins WHERE id = ?`,
+		`SELECT id, username, created_at, is_active, can_manage_admins FROM admins WHERE id = ?`,
 		id,
-	).Scan(&admin.ID, &admin.Username, &admin.CreatedAt, &admin.IsActive)
+	).Scan(&admin.ID, &admin.Username, &admin.CreatedAt, &admin.IsActive, &admin.CanManageAdmins)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -76,7 +77,7 @@ func (s *SQLiteStore) GetAdminByID(id int) (*models.Admin, error) {
 
 // ListAdmins retrieves all admin accounts
 func (s *SQLiteStore) ListAdmins() ([]*models.Admin, error) {
-	rows, err := s.db.Query(`SELECT id, username, created_at, is_active FROM admins ORDER BY id ASC`)
+	rows, err := s.db.Query(`SELECT id, username, created_at, is_active, can_manage_admins FROM admins ORDER BY id ASC`)
 	if err != nil {
 		return nil, fmt.Errorf("error listing admins: %w", err)
 	}
@@ -85,7 +86,7 @@ func (s *SQLiteStore) ListAdmins() ([]*models.Admin, error) {
 	var admins []*models.Admin
 	for rows.Next() {
 		admin := &models.Admin{}
-		if err := rows.Scan(&admin.ID, &admin.Username, &admin.CreatedAt, &admin.IsActive); err != nil {
+		if err := rows.Scan(&admin.ID, &admin.Username, &admin.CreatedAt, &admin.IsActive, &admin.CanManageAdmins); err != nil {
 			return nil, fmt.Errorf("error scanning admin: %w", err)
 		}
 		admins = append(admins, admin)
@@ -111,6 +112,16 @@ func (s *SQLiteStore) SetAdminPassword(id int, passwordHash string) error {
 	_, err := s.db.Exec(`UPDATE admins SET password_hash = ? WHERE id = ?`, passwordHash, id)
 	if err != nil {
 		return fmt.Errorf("error updating admin password: %w", err)
+	}
+	return nil
+}
+
+// SetAdminPermissions updates whether an admin may access and manage the
+// admins page
+func (s *SQLiteStore) SetAdminPermissions(id int, canManageAdmins bool) error {
+	_, err := s.db.Exec(`UPDATE admins SET can_manage_admins = ? WHERE id = ?`, canManageAdmins, id)
+	if err != nil {
+		return fmt.Errorf("error updating admin permissions: %w", err)
 	}
 	return nil
 }

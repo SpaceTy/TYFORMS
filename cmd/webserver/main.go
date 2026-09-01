@@ -96,6 +96,7 @@ func main() {
 	http.HandleFunc("/api/auth/admins/create", handler.CreateAdmin)
 	http.HandleFunc("/api/auth/admins/delete", handler.DeleteAdmin)
 	http.HandleFunc("/api/auth/admins/password", handler.ChangeAdminPassword)
+	http.HandleFunc("/api/auth/admins/permissions", handler.SetAdminPermissions)
 	http.HandleFunc("/api/application", handler.CreateApplication)
 	http.HandleFunc("/api/application/list", handler.GetApplications)
 	http.HandleFunc("/api/application/stats", handler.GetApplicationStatistics)

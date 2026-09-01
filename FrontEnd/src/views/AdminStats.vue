@@ -40,21 +40,18 @@
       </form>
     </div>
 
-    <div v-else class="absolute inset-0 p-4">
-      <div class="admin-panel mc-panel w-full h-full flex flex-col">
-        <div class="flex justify-between items-center px-6 py-4 bg-black/70 sticky top-0 z-20 border-b border-white/10">
-          <h2 class="mc-title mb-0">Application Statistics</h2>
-          <div class="flex gap-2">
-            <button @click="goToDashboard" class="mc-button text-sm secondary">Dashboard</button>
+    <div v-else class="absolute inset-0 md:p-4">
+      <div class="admin-panel mc-panel w-full h-full flex flex-col rounded-none border-0 bg-black shadow-none md:rounded-xl md:border md:bg-black/60 md:shadow-soft">
+        <AdminNavbar @logout="logout">
+          <template #actions>
             <button @click="loadStats" class="mc-button text-sm" :disabled="isLoading">
               <span v-if="isLoading">Loading...</span>
               <span v-else>Refresh</span>
             </button>
-            <ProfileMenu @logout="logout" />
-          </div>
-        </div>
+          </template>
+        </AdminNavbar>
 
-        <div class="flex-grow overflow-auto p-6 bg-black/80">
+        <div class="flex-grow overflow-auto p-4 md:p-6 bg-black/80">
           <div v-if="errorMessage" class="bg-red-600/40 text-white p-3 mb-4 rounded-lg border border-red-500/30">
             {{ errorMessage }}
           </div>
@@ -151,7 +148,7 @@
 import { computed, nextTick, ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import api from '../services/api';
-import ProfileMenu from '../components/ProfileMenu.vue';
+import AdminNavbar from '../components/AdminNavbar.vue';
 
 const router = useRouter();
 const isAuthenticated = ref(false);
@@ -234,10 +231,6 @@ async function loadStats() {
   } finally {
     isLoading.value = false;
   }
-}
-
-function goToDashboard() {
-  router.push('/admin');
 }
 
 function logout() {

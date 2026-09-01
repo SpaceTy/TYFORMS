@@ -50,30 +50,18 @@
     <div v-else class="absolute inset-0 p-4">
       <div ref="adminContainerRef" class="admin-panel mc-panel w-full h-full flex flex-col">
         <!-- Fixed top bar -->
-        <div class="flex justify-between items-center px-6 py-4 bg-black/70 sticky top-0 z-20 border-b border-white/10">
-          <h2 class="mc-title mb-0">TYFORMS</h2>
-
-          <div class="flex gap-2 items-center">
-            <button @click="router.push('/admin/accounts')" class="mc-button text-sm secondary">
-              Admins
-            </button>
-
+        <AdminNavbar @logout="handleLogout">
+          <template #actions>
             <button @click="handleRefresh" class="mc-button text-sm">
               <span v-if="isLoading">Loading...</span>
               <span v-else>Refresh</span>
             </button>
-            
+
             <button @click="handleExport" class="mc-button text-sm secondary">
               Export CSV
             </button>
-
-            <button @click="goToStats" class="mc-button text-sm secondary">
-              Statistics
-            </button>
-
-            <ProfileMenu @logout="handleLogout" />
-          </div>
-        </div>
+          </template>
+        </AdminNavbar>
         
         <div v-if="errorMessage" class="bg-red-600/40 text-white p-3 mx-6 my-4 rounded-lg border border-red-500/30">
           {{ errorMessage }}
@@ -415,11 +403,9 @@
 import { ref, onMounted, onUnmounted, nextTick, inject, computed, watch } from 'vue';
 import { gsap } from 'gsap';
 import api from '../services/api';
-import { useRouter } from 'vue-router';
 import NotesModal from '../components/NotesModal.vue';
-import ProfileMenu from '../components/ProfileMenu.vue';
+import AdminNavbar from '../components/AdminNavbar.vue';
 
-const router = useRouter();
 const confirmation = inject('confirmation');
 const notification = inject('notification');
 
@@ -1365,10 +1351,6 @@ const handleExport = async () => {
 
 const handleRefresh = async () => {
   refreshData();
-};
-
-const goToStats = () => {
-  router.push('/admin/stats');
 };
 </script>
 

@@ -51,7 +51,6 @@
       <!-- Header -->
       <header class="bg-black/90 border-b border-white/10 px-4 py-3 flex items-center justify-between shrink-0 z-30">
         <div class="flex items-center gap-2">
-          <h2 class="font-pixel text-xl text-primary-400 m-0 leading-none">Dashboard</h2>
           <span class="text-xs bg-black/30 px-2 py-0.5 rounded text-gray-400 font-mono">{{ totalApplications }}</span>
         </div>
         
@@ -83,7 +82,7 @@
                 <button @click="goToStats(); showMenu = false" class="w-full text-left px-4 py-3 hover:bg-white/5 flex items-center gap-2 text-sm">
                   <span>◫</span> Statistics
                 </button>
-                <button @click="goToAccounts(); showMenu = false" class="w-full text-left px-4 py-3 hover:bg-white/5 flex items-center gap-2 text-sm">
+                <button v-if="canManageAdmins" @click="goToAccounts(); showMenu = false" class="w-full text-left px-4 py-3 hover:bg-white/5 flex items-center gap-2 text-sm">
                   <span>⚙</span> Manage Admins
                 </button>
               </div>
@@ -376,6 +375,7 @@ const errorMessage = ref('');
 const applications = ref([]);
 const showMenu = ref(false);
 const showSearch = ref(false);
+const canManageAdmins = ref(false);
 
 // Pagination state
 const currentPage = ref(1);
@@ -471,6 +471,7 @@ async function authenticate() {
 
     if (response.success) {
       authenticatedPassword.value = '';
+      canManageAdmins.value = !!response.admin?.canManageAdmins;
 
       gsap.to('.login-container', {
         opacity: 0,
@@ -822,6 +823,7 @@ async function tryRestoreSession() {
   const result = await api.validateToken();
   if (result.valid) {
     isAuthenticated.value = true;
+    canManageAdmins.value = !!result.admin?.canManageAdmins;
     nextTick(() => {
       refreshData();
     });

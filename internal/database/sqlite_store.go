@@ -58,7 +58,8 @@ func createTables(db *sql.DB) error {
 			username TEXT NOT NULL UNIQUE,
 			password_hash TEXT NOT NULL,
 			created_at DATETIME NOT NULL,
-			is_active BOOLEAN NOT NULL DEFAULT TRUE
+			is_active BOOLEAN NOT NULL DEFAULT TRUE,
+			can_manage_admins BOOLEAN NOT NULL DEFAULT FALSE
 		)`,
 		`CREATE TABLE IF NOT EXISTS admin_sessions (
 			token TEXT PRIMARY KEY,
@@ -88,6 +89,13 @@ func createTables(db *sql.DB) error {
 			return fmt.Errorf("error executing table creation: %w", err)
 		}
 	}
+
+	// Add can_manage_admins to databases created before the column existed
+	// (a no-op when the column is already present)
+	if _, err := db.Exec(`ALTER TABLE admins ADD COLUMN can_manage_admins BOOLEAN NOT NULL DEFAULT FALSE`); err != nil &&
+		!strings.Contains(err.Error(), "duplicate column name") {
+		return fmt.Errorf("error adding can_manage_admins column: %w", err)
+	}
 	return nil
 }
 
@@ -103,7 +111,12 @@ func (s *SQLiteStore) EnsureSeedAdmin(username, password string) error {
 	if err := s.db.QueryRow(`SELECT COUNT(*) FROM admins`).Scan(&count); err != nil {
 		return fmt.Errorf("error counting admins: %w", err)
 	}
+
 	if count > 0 {
+		// The root admin always retains admin-management permission
+		if _, err := s.db.Exec(`UPDATE admins SET can_manage_admins = TRUE WHERE username = ?`, username); err != nil {
+			return fmt.Errorf("error ensuring root admin permissions: %w", err)
+		}
 		return nil
 	}
 
@@ -113,7 +126,7 @@ func (s *SQLiteStore) EnsureSeedAdmin(username, password string) error {
 	}
 
 	_, err = s.db.Exec(
-		`INSERT INTO admins (username, password_hash, created_at, is_active) VALUES (?, ?, ?, TRUE)`,
+		`INSERT INTO admins (username, password_hash, created_at, is_active, can_manage_admins) VALUES (?, ?, ?, TRUE, TRUE)`,
 		username, string(hash), time.Now().UTC(),
 	)
 	if err != nil {

@@ -15,6 +15,29 @@ import (
 
 var adminUsernamePattern = regexp.MustCompile(`^[a-zA-Z0-9_-]{3,32}$`)
 
+// actorCanManageAdmins reports whether the resolved actor may access the
+// admins page and manage admin accounts. The legacy config password (which
+// resolves to the root admin with ID 0) always may.
+func actorCanManageAdmins(actor *models.Admin) bool {
+	return actor != nil && (actor.ID == 0 || actor.CanManageAdmins)
+}
+
+// requireAdminManager authenticates the request and additionally enforces the
+// admin-management permission. Writes the error response and returns nil when
+// the caller is not allowed.
+func (h *ApplicationHandler) requireAdminManager(w http.ResponseWriter, password, token string) *models.Admin {
+	actor, ok := h.resolveActor(password, token)
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return nil
+	}
+	if !actorCanManageAdmins(actor) {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return nil
+	}
+	return actor
+}
+
 type loginRequest struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
@@ -205,7 +228,7 @@ func (h *ApplicationHandler) ValidateToken(w http.ResponseWriter, r *http.Reques
 	json.NewEncoder(w).Encode(response)
 }
 
-// ListAdmins returns all admin accounts (admin only)
+// ListAdmins returns all admin accounts (admin-management permission required)
 func (h *ApplicationHandler) ListAdmins(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -221,8 +244,7 @@ func (h *ApplicationHandler) ListAdmins(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	if !h.checkAuth(auth.Password, auth.Token) {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+	if h.requireAdminManager(w, auth.Password, auth.Token) == nil {
 		return
 	}
 
@@ -242,7 +264,7 @@ func (h *ApplicationHandler) ListAdmins(w http.ResponseWriter, r *http.Request) 
 	})
 }
 
-// CreateAdmin adds a new admin account (admin only)
+// CreateAdmin adds a new admin account (admin-management permission required)
 func (h *ApplicationHandler) CreateAdmin(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -250,18 +272,19 @@ func (h *ApplicationHandler) CreateAdmin(w http.ResponseWriter, r *http.Request)
 	}
 
 	var req struct {
-		Password string `json:"password"`
-		Token    string `json:"token"`
-		Username string `json:"username"`
-		NewPass  string `json:"newPassword"`
+		Password  string `json:"password"`
+		Token     string `json:"token"`
+		Username  string `json:"username"`
+		NewPass   string `json:"newPassword"`
+		CanManage bool   `json:"canManageAdmins"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	if !h.checkAuth(req.Password, req.Token) {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+	actor := h.requireAdminManager(w, req.Password, req.Token)
+	if actor == nil {
 		return
 	}
 
@@ -289,7 +312,7 @@ func (h *ApplicationHandler) CreateAdmin(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	admin, err := h.store.CreateAdmin(username, string(hash))
+	admin, err := h.store.CreateAdmin(username, string(hash), req.CanManage)
 	if err == database.ErrAdminExists {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusConflict)
@@ -312,7 +335,7 @@ func (h *ApplicationHandler) CreateAdmin(w http.ResponseWriter, r *http.Request)
 	})
 }
 
-// DeleteAdmin removes an admin account (admin only)
+// DeleteAdmin removes an admin account (admin-management permission required)
 func (h *ApplicationHandler) DeleteAdmin(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -329,9 +352,8 @@ func (h *ApplicationHandler) DeleteAdmin(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	actor, ok := h.resolveActor(req.Password, req.Token)
-	if !ok {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+	actor := h.requireAdminManager(w, req.Password, req.Token)
+	if actor == nil {
 		return
 	}
 
@@ -370,8 +392,10 @@ func (h *ApplicationHandler) DeleteAdmin(w http.ResponseWriter, r *http.Request)
 	json.NewEncoder(w).Encode(map[string]bool{"success": true})
 }
 
-// ChangeAdminPassword updates an admin account's password (admin only).
-// When no ID is provided the password of the calling account is changed.
+// ChangeAdminPassword updates an admin account's password.
+// Requires admin-management permission, except that every account may change
+// its own password. When no ID is provided the password of the calling
+// account is changed.
 func (h *ApplicationHandler) ChangeAdminPassword(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -414,6 +438,11 @@ func (h *ApplicationHandler) ChangeAdminPassword(w http.ResponseWriter, r *http.
 		targetID = actor.ID
 		targetUsername = actor.Username
 	} else {
+		// Changing another account's password requires the permission
+		if !actorCanManageAdmins(actor) && targetID != actor.ID {
+			http.Error(w, "Forbidden", http.StatusForbidden)
+			return
+		}
 		target, err := h.store.GetAdminByID(targetID)
 		if err != nil || target == nil {
 			http.Error(w, "Admin not found", http.StatusNotFound)
@@ -434,6 +463,68 @@ func (h *ApplicationHandler) ChangeAdminPassword(w http.ResponseWriter, r *http.
 	}
 
 	log.Printf("Password for admin %q updated by %q", targetUsername, actor.Username)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]bool{"success": true})
+}
+
+// SetAdminPermissions updates whether an admin may access and manage the
+// admins page (admin-management permission required)
+func (h *ApplicationHandler) SetAdminPermissions(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req struct {
+		Password  string `json:"password"`
+		Token     string `json:"token"`
+		ID        int    `json:"id"`
+		CanManage bool   `json:"canManageAdmins"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	actor := h.requireAdminManager(w, req.Password, req.Token)
+	if actor == nil {
+		return
+	}
+
+	if req.ID == 0 {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Specify the id of the account to update."})
+		return
+	}
+
+	if actor.ID != 0 && actor.ID == req.ID {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "You cannot change your own admin-management permission."})
+		return
+	}
+
+	target, err := h.store.GetAdminByID(req.ID)
+	if err != nil || target == nil {
+		http.Error(w, "Admin not found", http.StatusNotFound)
+		return
+	}
+
+	// The root admin always retains admin-management permission
+	if target.Username == h.rootUsername && !req.CanManage {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "The root admin account always retains admin-management permission."})
+		return
+	}
+
+	if err := h.store.SetAdminPermissions(req.ID, req.CanManage); err != nil {
+		http.Error(w, "Error updating permissions", http.StatusInternalServerError)
+		return
+	}
+
+	log.Printf("Admin-management permission for %q set to %v by %q", target.Username, req.CanManage, actor.Username)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]bool{"success": true})
 }

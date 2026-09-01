@@ -345,6 +345,11 @@ export default {
     return response.data;
   },
 
+  async setAdminPermissions(id, canManageAdmins) {
+    const response = await api.post('/api/auth/admins/permissions', authPayload({ id, canManageAdmins }));
+    return response.data;
+  },
+
   getUsername,
   ensureFreshSession: async function () {
     if (!getRefreshToken()) return false;
