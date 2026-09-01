@@ -17,6 +17,7 @@ type Config struct {
 		Port int `yaml:"port"`
 	} `yaml:"server"`
 	Admin struct {
+		Username string `yaml:"username"`
 		Password string `yaml:"password"`
 	} `yaml:"admin"`
 }
@@ -31,7 +32,8 @@ func DefaultConfig() *Config {
 	// Default server port
 	cfg.Server.Port = 5099
 
-	// Default admin password (should be changed in production)
+	// Default root admin account (should be changed in production)
+	cfg.Admin.Username = "admin"
 	cfg.Admin.Password = "admin123"
 
 	return cfg

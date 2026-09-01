@@ -50,7 +50,7 @@
               <span v-if="isLoading">Loading...</span>
               <span v-else>Refresh</span>
             </button>
-            <button @click="logout" class="mc-button text-sm danger">Logout</button>
+            <ProfileMenu @logout="logout" />
           </div>
         </div>
 
@@ -151,6 +151,7 @@
 import { computed, nextTick, ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import api from '../services/api';
+import ProfileMenu from '../components/ProfileMenu.vue';
 
 const router = useRouter();
 const isAuthenticated = ref(false);

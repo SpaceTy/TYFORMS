@@ -76,14 +76,14 @@ func main() {
 	defer store.Close()
 	log.Printf("Database connection established successfully")
 
-	// Seed the initial admin account from the configured password (no-op if admins already exist)
-	if err := store.EnsureSeedAdmin(cfg.Admin.Password); err != nil {
+	// Seed the initial root admin account from the configured credentials (no-op if admins already exist)
+	if err := store.EnsureSeedAdmin(cfg.Admin.Username, cfg.Admin.Password); err != nil {
 		log.Fatalf("Error seeding initial admin account: %v", err)
 	}
 
 	// Initialize handler
 	log.Printf("Initializing application handler")
-	handler := handlers.NewApplicationHandler(store, cfg.Admin.Password)
+	handler := handlers.NewApplicationHandler(store, cfg.Admin.Username, cfg.Admin.Password)
 
 	// Set up routes
 	log.Printf("Setting up HTTP routes")

@@ -25,13 +25,18 @@ const (
 // ApplicationHandler handles all application-related HTTP requests
 type ApplicationHandler struct {
 	store         *database.SQLiteStore
+	rootUsername  string
 	adminPassword string
 }
 
 // NewApplicationHandler creates a new ApplicationHandler
-func NewApplicationHandler(store *database.SQLiteStore, adminPassword string) *ApplicationHandler {
+func NewApplicationHandler(store *database.SQLiteStore, rootUsername, adminPassword string) *ApplicationHandler {
+	if rootUsername == "" {
+		rootUsername = database.SeedAdminUsername
+	}
 	h := &ApplicationHandler{
 		store:         store,
+		rootUsername:  rootUsername,
 		adminPassword: adminPassword,
 	}
 	go h.cleanupSessions()
@@ -66,10 +71,10 @@ func (h *ApplicationHandler) resolveActor(password, token string) (*models.Admin
 		}
 	}
 	if password != "" && password == h.adminPassword {
-		if admin, err := h.store.GetAdminByUsername(database.SeedAdminUsername); err == nil && admin != nil {
+		if admin, err := h.store.GetAdminByUsername(h.rootUsername); err == nil && admin != nil {
 			return &admin.Admin, true
 		}
-		return &models.Admin{ID: 0, Username: database.SeedAdminUsername}, true
+		return &models.Admin{ID: 0, Username: h.rootUsername}, true
 	}
 	return nil, false
 }

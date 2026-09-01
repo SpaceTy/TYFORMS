@@ -19,7 +19,7 @@ Minecraft SMP application system ("tyforms"): Go backend serving a JSON API plus
 ## Gotchas
 
 - Port `:5099` is hardcoded in `main.go` (`http.ListenAndServe`); `server.port` in config is loaded but ignored.
-- Config: `config.yaml` in cwd (gitignored) or `~/.tyforms/config.yaml`; defaults are db `applications.db` + admin password `admin123`. Air runs with `APP_ENV=dev APP_USER=air`.
+- Config: `config.yaml` in cwd (gitignored, same dir the binary runs from); defaults are db `applications.db` + root admin `admin`/`admin123`. `admin.username` sets the root admin name used for seeding and for legacy password-only logins. Air runs with `APP_ENV=dev APP_USER=air`.
 - `mattn/go-sqlite3` requires cgo (a C compiler must be installed).
 - The 13MB `tyforms` binary is tracked in git — stale build output, not a source file.
 - `AdminPanel.vue` (desktop) and `MobileAdminPanel.vue` are separate near-duplicate implementations; admin UI changes usually need both.

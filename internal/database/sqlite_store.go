@@ -13,7 +13,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// SeedAdminUsername is the username of the admin account seeded from config
+// SeedAdminUsername is the default username of the admin account seeded from config
 const SeedAdminUsername = "admin"
 
 // SQLiteStore handles all database operations
@@ -91,11 +91,11 @@ func createTables(db *sql.DB) error {
 	return nil
 }
 
-// EnsureSeedAdmin seeds the initial admin account (username "admin") using the
-// configured admin password when no admin accounts exist yet. This keeps
+// EnsureSeedAdmin seeds the initial root admin account using the configured
+// username and admin password when no admin accounts exist yet. This keeps
 // existing deployments working after the upgrade.
-func (s *SQLiteStore) EnsureSeedAdmin(password string) error {
-	if password == "" {
+func (s *SQLiteStore) EnsureSeedAdmin(username, password string) error {
+	if username == "" || password == "" {
 		return nil
 	}
 
@@ -114,13 +114,13 @@ func (s *SQLiteStore) EnsureSeedAdmin(password string) error {
 
 	_, err = s.db.Exec(
 		`INSERT INTO admins (username, password_hash, created_at, is_active) VALUES (?, ?, ?, TRUE)`,
-		SeedAdminUsername, string(hash), time.Now().UTC(),
+		username, string(hash), time.Now().UTC(),
 	)
 	if err != nil {
 		return fmt.Errorf("error creating seed admin: %w", err)
 	}
 
-	log.Printf("Seeded initial admin account %q", SeedAdminUsername)
+	log.Printf("Seeded initial root admin account %q", username)
 	return nil
 }
 

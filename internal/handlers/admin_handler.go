@@ -52,9 +52,9 @@ func (h *ApplicationHandler) Login(w http.ResponseWriter, r *http.Request) {
 			h.writeLoginFailure(w)
 			return
 		}
-		stored, err := h.store.GetAdminByUsername(database.SeedAdminUsername)
+		stored, err := h.store.GetAdminByUsername(h.rootUsername)
 		if err != nil || stored == nil {
-			admin = &models.Admin{ID: 0, Username: database.SeedAdminUsername}
+			admin = &models.Admin{ID: 0, Username: h.rootUsername}
 		} else {
 			admin = &stored.Admin
 		}

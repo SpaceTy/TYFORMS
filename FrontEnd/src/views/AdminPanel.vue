@@ -54,10 +54,7 @@
           <h2 class="mc-title mb-0">TYFORMS</h2>
 
           <div class="flex gap-2 items-center">
-            <span v-if="adminUsername" class="text-xs text-neutral-400 mr-1" title="Signed in as">
-              {{ adminUsername }}
-            </span>
-            <button @click="showAdminsModal = true" class="mc-button text-sm secondary">
+            <button @click="router.push('/admin/accounts')" class="mc-button text-sm secondary">
               Admins
             </button>
 
@@ -73,10 +70,8 @@
             <button @click="goToStats" class="mc-button text-sm secondary">
               Statistics
             </button>
-            
-            <button @click="handleLogout" class="mc-button text-sm danger">
-              Logout
-            </button>
+
+            <ProfileMenu @logout="handleLogout" />
           </div>
         </div>
         
@@ -413,9 +408,6 @@
         </div>
       </div>
     </div>
-
-    <!-- Admin Account Management Modal -->
-    <AdminManagementModal v-if="showAdminsModal" @close="showAdminsModal = false" />
   </div>
 </template>
 
@@ -425,7 +417,7 @@ import { gsap } from 'gsap';
 import api from '../services/api';
 import { useRouter } from 'vue-router';
 import NotesModal from '../components/NotesModal.vue';
-import AdminManagementModal from '../components/AdminManagementModal.vue';
+import ProfileMenu from '../components/ProfileMenu.vue';
 
 const router = useRouter();
 const confirmation = inject('confirmation');
@@ -440,7 +432,6 @@ const applications = ref([]);
 // Authentication state
 const isAuthenticated = ref(false);
 const username = ref(api.getUsername());
-const adminUsername = ref(api.getUsername());
 const password = ref('');
 const authError = ref('');
 const passwordInput = ref(null);
@@ -448,7 +439,6 @@ const authenticatedPassword = ref(''); // Legacy fallback only; token is preferr
 const adminContainerRef = ref(null);
 const isDeleting = ref(null); // Track which row is being deleted
 const isProcessing = ref(null); // Track which application is being processed (review/unreview)
-const showAdminsModal = ref(false);
 
 // Notes modal state
 const showNotesModal = ref(false);
@@ -610,7 +600,6 @@ async function authenticate() {
 
     if (response.success) {
       authenticatedPassword.value = '';
-      adminUsername.value = api.getUsername();
 
       // Animate login transition
       gsap.to('.login-container', {
@@ -1266,7 +1255,6 @@ function logout() {
       isAuthenticated.value = false;
       authenticatedPassword.value = '';
       api.logout();
-      adminUsername.value = api.getUsername();
       applications.value = [];
 
       // After view changes, animate the login form in
@@ -1292,7 +1280,6 @@ function logout() {
 async function tryRestoreSession() {
   const result = await api.validateToken();
   if (result.valid) {
-    adminUsername.value = api.getUsername();
     isAuthenticated.value = true;
     nextTick(() => {
       refreshData();

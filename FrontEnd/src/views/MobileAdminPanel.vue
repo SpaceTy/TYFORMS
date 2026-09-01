@@ -83,19 +83,16 @@
                 <button @click="goToStats(); showMenu = false" class="w-full text-left px-4 py-3 hover:bg-white/5 flex items-center gap-2 text-sm">
                   <span>◫</span> Statistics
                 </button>
-                <button @click="showAdminsModal = true; showMenu = false" class="w-full text-left px-4 py-3 hover:bg-white/5 flex items-center gap-2 text-sm">
+                <button @click="goToAccounts(); showMenu = false" class="w-full text-left px-4 py-3 hover:bg-white/5 flex items-center gap-2 text-sm">
                   <span>⚙</span> Manage Admins
-                </button>
-                <div class="h-px bg-black/30 my-1"></div>
-                <button @click="logout" class="w-full text-left px-4 py-3 hover:bg-red-500/20 text-red-400 flex items-center gap-2 text-sm">
-                  <span>➜</span> Logout
-                  <span v-if="adminUsername" class="ml-auto text-xs text-gray-500">{{ adminUsername }}</span>
                 </button>
               </div>
             </div>
             <!-- Backdrop for menu -->
             <div v-if="showMenu" @click="showMenu = false" class="fixed inset-0 z-40 bg-transparent"></div>
           </div>
+
+          <ProfileMenu @logout="logout" />
         </div>
       </header>
       
@@ -357,9 +354,6 @@
       </Transition>
     </Teleport>
 
-    <!-- Admin Account Management Modal -->
-    <AdminManagementModal v-if="showAdminsModal" @close="showAdminsModal = false" />
-
   </div>
 </template>
 
@@ -369,7 +363,7 @@ import { gsap } from 'gsap';
 import api from '../services/api';
 import { useRouter } from 'vue-router';
 import NotesModal from '../components/NotesModal.vue';
-import AdminManagementModal from '../components/AdminManagementModal.vue';
+import ProfileMenu from '../components/ProfileMenu.vue';
 
 const router = useRouter();
 const confirmation = inject('confirmation');
@@ -392,14 +386,12 @@ const totalPages = ref(0);
 // Authentication state
 const isAuthenticated = ref(false);
 const username = ref(api.getUsername());
-const adminUsername = ref(api.getUsername());
 const password = ref('');
 const authError = ref('');
 const authenticatedPassword = ref('');
 const adminContainerRef = ref(null);
 const isDeleting = ref(null);
 const isProcessing = ref(null);
-const showAdminsModal = ref(false);
 
 // Notes modal state
 const showNotesModal = ref(false);
@@ -479,7 +471,6 @@ async function authenticate() {
 
     if (response.success) {
       authenticatedPassword.value = '';
-      adminUsername.value = api.getUsername();
 
       gsap.to('.login-container', {
         opacity: 0,
@@ -815,7 +806,6 @@ async function logout() {
   isAuthenticated.value = false;
   authenticatedPassword.value = '';
   await api.logout();
-  adminUsername.value = api.getUsername();
   password.value = '';
   applications.value = [];
 }
@@ -824,10 +814,13 @@ function goToStats() {
   router.push('/admin/stats');
 }
 
+function goToAccounts() {
+  router.push('/admin/accounts');
+}
+
 async function tryRestoreSession() {
   const result = await api.validateToken();
   if (result.valid) {
-    adminUsername.value = api.getUsername();
     isAuthenticated.value = true;
     nextTick(() => {
       refreshData();
