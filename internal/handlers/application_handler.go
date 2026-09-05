@@ -63,18 +63,36 @@ func (h *ApplicationHandler) cleanupSessions() {
 // the seeded root admin. Returns nil when authentication fails.
 func (h *ApplicationHandler) resolveActor(password, token string) (*models.Admin, bool) {
 	if token != "" {
-		if adminID, ok, err := h.store.GetValidSession(token, "access"); err == nil && ok {
+		adminID, ok, err := h.store.GetValidSession(token, "access")
+		if err != nil {
+			log.Printf("[AUTH] Token validation error: %v", err)
+		} else if !ok {
+			log.Printf("[AUTH] Token not found or expired")
+		} else {
 			admin, err := h.store.GetAdminByID(adminID)
-			if err == nil && admin != nil && admin.IsActive {
+			if err != nil {
+				log.Printf("[AUTH] Error looking up admin for token (admin_id=%d): %v", adminID, err)
+			} else if admin == nil {
+				log.Printf("[AUTH] Admin not found for token (admin_id=%d)", adminID)
+			} else if !admin.IsActive {
+				log.Printf("[AUTH] Admin %q (id=%d) is inactive", admin.Username, admin.ID)
+			} else {
 				return admin, true
 			}
 		}
 	}
 	if password != "" && password == h.adminPassword {
-		if admin, err := h.store.GetAdminByUsername(h.rootUsername); err == nil && admin != nil {
+		admin, err := h.store.GetAdminByUsername(h.rootUsername)
+		if err != nil {
+			log.Printf("[AUTH] Legacy password auth: error looking up root admin %q: %v", h.rootUsername, err)
+		}
+		if err == nil && admin != nil {
 			return &admin.Admin, true
 		}
 		return &models.Admin{ID: 0, Username: h.rootUsername}, true
+	}
+	if password != "" && password != h.adminPassword {
+		log.Printf("[AUTH] Legacy password auth failed: password mismatch (configured len=%d, supplied len=%d)", len(h.adminPassword), len(password))
 	}
 	return nil, false
 }

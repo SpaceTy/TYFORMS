@@ -65,7 +65,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error loading config: %v", err)
 	}
-	log.Printf("Configuration loaded successfully")
+	log.Printf("Configuration loaded: admin.username=%q, admin.password len=%d, database.path=%q", cfg.Admin.Username, len(cfg.Admin.Password), cfg.Database.Path)
 
 	// Initialize database
 	log.Printf("Initializing database connection to: %s", cfg.Database.Path)

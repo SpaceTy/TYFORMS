@@ -64,43 +64,72 @@ func (h *ApplicationHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 	var req loginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		log.Printf("[LOGIN] Failed to decode request body: %v", err)
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
+	log.Printf("[LOGIN] Attempt for username=%q (legacy=%v) from %s", req.Username, req.Username == "", r.RemoteAddr)
+
 	var admin *models.Admin
 	if req.Username == "" {
 		// Legacy password-only login (kept for compatibility with existing clients)
-		if req.Password == "" || req.Password != h.adminPassword {
+		if req.Password == "" {
+			log.Printf("[LOGIN] Legacy login failed: empty password")
 			h.writeLoginFailure(w)
 			return
 		}
+		if req.Password != h.adminPassword {
+			log.Printf("[LOGIN] Legacy login failed: password mismatch (configured password len=%d, supplied len=%d)", len(h.adminPassword), len(req.Password))
+			h.writeLoginFailure(w)
+			return
+		}
+		log.Printf("[LOGIN] Legacy password matched, looking up root admin %q", h.rootUsername)
 		stored, err := h.store.GetAdminByUsername(h.rootUsername)
+		if err != nil {
+			log.Printf("[LOGIN] Legacy login: error looking up root admin %q: %v", h.rootUsername, err)
+		}
 		if err != nil || stored == nil {
+			log.Printf("[LOGIN] Legacy login: root admin %q not found in DB, using synthetic admin", h.rootUsername)
 			admin = &models.Admin{ID: 0, Username: h.rootUsername}
 		} else {
+			log.Printf("[LOGIN] Legacy login: root admin found, id=%d active=%v", stored.ID, stored.IsActive)
 			admin = &stored.Admin
 		}
 	} else {
 		stored, err := h.store.GetAdminByUsername(req.Username)
-		if err != nil || stored == nil || !stored.IsActive {
+		if err != nil {
+			log.Printf("[LOGIN] Error looking up admin %q: %v", req.Username, err)
+			h.writeLoginFailure(w)
+			return
+		}
+		if stored == nil {
+			log.Printf("[LOGIN] Admin %q not found in DB", req.Username)
+			h.writeLoginFailure(w)
+			return
+		}
+		if !stored.IsActive {
+			log.Printf("[LOGIN] Admin %q exists but is inactive (id=%d)", req.Username, stored.ID)
 			h.writeLoginFailure(w)
 			return
 		}
 		if bcrypt.CompareHashAndPassword([]byte(stored.PasswordHash), []byte(req.Password)) != nil {
+			log.Printf("[LOGIN] Password mismatch for admin %q (id=%d, hash_len=%d, supplied_len=%d)", req.Username, stored.ID, len(stored.PasswordHash), len(req.Password))
 			h.writeLoginFailure(w)
 			return
 		}
+		log.Printf("[LOGIN] Password verified for admin %q (id=%d)", req.Username, stored.ID)
 		admin = &stored.Admin
 	}
 
 	token, refreshToken, expiresAt, err := h.createSessionPair(admin.ID)
 	if err != nil {
-		log.Printf("Error creating session pair: %v", err)
+		log.Printf("[LOGIN] Error creating session pair for admin %q (id=%d): %v", admin.Username, admin.ID, err)
 		http.Error(w, "Error creating session", http.StatusInternalServerError)
 		return
 	}
 
+	log.Printf("[LOGIN] Success for admin %q (id=%d)", admin.Username, admin.ID)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(sessionResponse{
 		Success:      true,
@@ -133,34 +162,48 @@ func (h *ApplicationHandler) RefreshSession(w http.ResponseWriter, r *http.Reque
 	}
 
 	if req.RefreshToken == "" {
+		log.Printf("[REFRESH] Missing refresh token from %s", r.RemoteAddr)
 		http.Error(w, "Missing refresh token", http.StatusUnauthorized)
 		return
 	}
 
 	adminID, ok, err := h.store.GetValidSession(req.RefreshToken, "refresh")
-	if err != nil || !ok {
+	if err != nil {
+		log.Printf("[REFRESH] Error validating refresh token: %v", err)
+		http.Error(w, "Invalid refresh token", http.StatusUnauthorized)
+		return
+	}
+	if !ok {
+		log.Printf("[REFRESH] Refresh token not found or expired from %s", r.RemoteAddr)
 		http.Error(w, "Invalid refresh token", http.StatusUnauthorized)
 		return
 	}
 
 	admin, err := h.store.GetAdminByID(adminID)
-	if err != nil || admin == nil || !admin.IsActive {
+	if err != nil {
+		log.Printf("[REFRESH] Error looking up admin (id=%d): %v", adminID, err)
+		http.Error(w, "Invalid refresh token", http.StatusUnauthorized)
+		return
+	}
+	if admin == nil || !admin.IsActive {
+		log.Printf("[REFRESH] Admin (id=%d) not found or inactive", adminID)
 		http.Error(w, "Invalid refresh token", http.StatusUnauthorized)
 		return
 	}
 
 	// Rotate: invalidate the used refresh token before issuing the new pair
 	if err := h.store.DeleteSession(req.RefreshToken); err != nil {
-		log.Printf("Error rotating refresh token: %v", err)
+		log.Printf("[REFRESH] Error rotating refresh token: %v", err)
 	}
 
 	token, refreshToken, expiresAt, err := h.createSessionPair(admin.ID)
 	if err != nil {
-		log.Printf("Error creating session pair: %v", err)
+		log.Printf("[REFRESH] Error creating session pair for admin %q (id=%d): %v", admin.Username, admin.ID, err)
 		http.Error(w, "Error creating session", http.StatusInternalServerError)
 		return
 	}
 
+	log.Printf("[REFRESH] Success for admin %q (id=%d)", admin.Username, admin.ID)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(sessionResponse{
 		Success:      true,

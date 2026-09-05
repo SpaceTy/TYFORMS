@@ -103,7 +103,9 @@ func createTables(db *sql.DB) error {
 // username and admin password when no admin accounts exist yet. This keeps
 // existing deployments working after the upgrade.
 func (s *SQLiteStore) EnsureSeedAdmin(username, password string) error {
+	log.Printf("[SEED] EnsureSeedAdmin called for username=%q", username)
 	if username == "" || password == "" {
+		log.Printf("[SEED] Skipping seed: username or password is empty")
 		return nil
 	}
 
@@ -111,12 +113,14 @@ func (s *SQLiteStore) EnsureSeedAdmin(username, password string) error {
 	if err := s.db.QueryRow(`SELECT COUNT(*) FROM admins`).Scan(&count); err != nil {
 		return fmt.Errorf("error counting admins: %w", err)
 	}
+	log.Printf("[SEED] Found %d existing admin accounts", count)
 
 	if count > 0 {
 		// The root admin always retains admin-management permission
 		if _, err := s.db.Exec(`UPDATE admins SET can_manage_admins = TRUE WHERE username = ?`, username); err != nil {
 			return fmt.Errorf("error ensuring root admin permissions: %w", err)
 		}
+		log.Printf("[SEED] Ensured root admin %q has can_manage_admins=TRUE", username)
 		return nil
 	}
 
@@ -133,7 +137,7 @@ func (s *SQLiteStore) EnsureSeedAdmin(username, password string) error {
 		return fmt.Errorf("error creating seed admin: %w", err)
 	}
 
-	log.Printf("Seeded initial root admin account %q", username)
+	log.Printf("[SEED] Seeded initial root admin account %q", username)
 	return nil
 }
 
