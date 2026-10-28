@@ -66,6 +66,9 @@ export default function render(root) {
   let profileCleanup = null;
   let searchTimer = null;
   let copiedTimer = null;
+  let newPollTimer = null;
+  let lastServerTime = null;
+  let firstPoll = true;
   const expanded = new Set();
 
   function cleanup() {
@@ -74,6 +77,7 @@ export default function render(root) {
     window.removeEventListener("keydown", onKeydown);
     if (searchTimer) clearTimeout(searchTimer);
     if (copiedTimer) clearTimeout(copiedTimer);
+    if (newPollTimer) clearInterval(newPollTimer);
   }
 
   function showLogin() {
@@ -201,6 +205,33 @@ export default function render(root) {
     wireList();
     wireBackdrop();
     await loadData();
+    startNewApplicationPolling();
+  }
+
+  function startNewApplicationPolling() {
+    if (newPollTimer) clearInterval(newPollTimer);
+    firstPoll = true;
+    newPollTimer = setInterval(checkForNewApplications, 5000);
+  }
+
+  async function checkForNewApplications() {
+    if (!authenticated) return;
+    try {
+      const result = await api.hasNewApplications(lastServerTime);
+      if (result && typeof result.now === "string") lastServerTime = result.now;
+      if (firstPoll) {
+        firstPoll = false;
+        return;
+      }
+      if (result && result.new) {
+        toast.success("New application received");
+        if (!searchQuery.trim()) {
+          await loadData();
+        }
+      }
+    } catch (error) {
+      if (error.status === 401) showLogin();
+    }
   }
 
   function wireHeader() {

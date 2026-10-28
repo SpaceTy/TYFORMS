@@ -251,6 +251,42 @@ func diffApplications(before, after *models.MinecraftApplication) []models.Field
 	return changes
 }
 
+// HasNewApplications handles checking whether new applications arrived since a timestamp (admin only)
+func (h *ApplicationHandler) HasNewApplications(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var request struct {
+		Password string    `json:"password"`
+		Token    string    `json:"token"`
+		Since    time.Time `json:"since"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if !h.checkAuth(request.Password, request.Token) {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	hasNew, err := h.store.HasNewApplicationsSince(request.Since)
+	if err != nil {
+		http.Error(w, "Error checking for new applications", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(struct {
+		New bool      `json:"new"`
+		Now time.Time `json:"now"`
+	}{New: hasNew, Now: time.Now().UTC()})
+}
+
 // GetApplications handles retrieving all applications with search and pagination (admin only)
 func (h *ApplicationHandler) GetApplications(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {

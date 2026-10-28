@@ -221,6 +221,19 @@ func (s *SQLiteStore) CreateApplication(app *models.MinecraftApplication) error 
 	return nil
 }
 
+// HasNewApplicationsSince reports whether any application was submitted after the given time
+func (s *SQLiteStore) HasNewApplicationsSince(since time.Time) (bool, error) {
+	var exists bool
+	err := s.db.QueryRow(
+		"SELECT EXISTS(SELECT 1 FROM applications WHERE submission_date > ?)",
+		since,
+	).Scan(&exists)
+	if err != nil {
+		return false, fmt.Errorf("error checking for new applications: %w", err)
+	}
+	return exists, nil
+}
+
 // GetApplication retrieves an application by ID
 func (s *SQLiteStore) GetApplication(id int) (*models.MinecraftApplication, error) {
 	query := `SELECT * FROM applications WHERE id = ?`

@@ -201,6 +201,11 @@ async function getApplications(adminPassword, query = "", fields = [], page = 1,
   return request("/api/application/list", payload);
 }
 
+async function hasNewApplications(since) {
+  const payload = authPayload({ since });
+  return request("/api/application/hasnew", payload);
+}
+
 async function getApplicationStats(adminPassword) {
   const payload = authPayload();
   if (adminPassword && !payload.token) payload.password = adminPassword;
@@ -302,6 +307,7 @@ export default {
   logout,
   validateToken,
   getApplications,
+  hasNewApplications,
   getApplicationStats,
   exportApplications,
   deleteApplication,

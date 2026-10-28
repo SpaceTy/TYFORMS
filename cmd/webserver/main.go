@@ -99,6 +99,7 @@ func main() {
 	http.HandleFunc("/api/auth/admins/permissions", handler.SetAdminPermissions)
 	http.HandleFunc("/api/application", handler.CreateApplication)
 	http.HandleFunc("/api/application/list", handler.GetApplications)
+	http.HandleFunc("/api/application/hasnew", handler.HasNewApplications)
 	http.HandleFunc("/api/application/stats", handler.GetApplicationStatistics)
 	http.HandleFunc("/api/application/export", handler.ExportApplications)
 	http.HandleFunc("/api/application/review", handler.ReviewApplication)

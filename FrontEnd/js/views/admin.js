@@ -52,6 +52,9 @@ export default function render(root) {
   let scrollEl = null;
   let searchTimer = null;
   let copiedTimer = null;
+  let newPollTimer = null;
+  let lastServerTime = null;
+  let firstPoll = true;
 
   function cleanup() {
     if (navbarCleanup) navbarCleanup();
@@ -59,6 +62,7 @@ export default function render(root) {
     window.removeEventListener("keydown", onKeydown);
     if (searchTimer) clearTimeout(searchTimer);
     if (copiedTimer) clearTimeout(copiedTimer);
+    if (newPollTimer) clearInterval(newPollTimer);
     detachTooltip();
     detachScroll();
   }
@@ -217,6 +221,33 @@ export default function render(root) {
     wireTable();
 
     await loadData();
+    startNewApplicationPolling();
+  }
+
+  function startNewApplicationPolling() {
+    if (newPollTimer) clearInterval(newPollTimer);
+    firstPoll = true;
+    newPollTimer = setInterval(checkForNewApplications, 5000);
+  }
+
+  async function checkForNewApplications() {
+    if (!authenticated) return;
+    try {
+      const result = await api.hasNewApplications(lastServerTime);
+      if (result && typeof result.now === "string") lastServerTime = result.now;
+      if (firstPoll) {
+        firstPoll = false;
+        return;
+      }
+      if (result && result.new) {
+        toast.success("New application received");
+        if (!searchQuery.trim()) {
+          await loadData({ animate: false });
+        }
+      }
+    } catch (error) {
+      if (error.status === 401) showLogin();
+    }
   }
 
   function wireSearchPanel() {
