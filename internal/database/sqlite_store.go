@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
-	"strconv"
 	"strings"
 	"time"
 	"tyforms/internal/models"
@@ -82,11 +81,52 @@ func createTables(db *sql.DB) error {
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_change_log_application ON change_log(application_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_change_log_root ON change_log(root_id)`,
+		// Full-text search index over the searchable application columns. The
+		// trigram tokenizer makes substring LIKE queries indexable (including
+		// short numeric IDs), which replaces the old in-Go fuzzy matcher.
+		`CREATE VIRTUAL TABLE IF NOT EXISTS applications_fts USING fts5(
+			discord_username,
+			minecraft_username,
+			favorite_about_minecraft,
+			understanding_of_smp,
+			id,
+			content='applications',
+			content_rowid='id',
+			tokenize='trigram'
+		)`,
+		// Keep the FTS index in sync with the applications table.
+		`CREATE TRIGGER IF NOT EXISTS applications_fts_ai AFTER INSERT ON applications BEGIN
+			INSERT INTO applications_fts(rowid, discord_username, minecraft_username, favorite_about_minecraft, understanding_of_smp, id)
+			VALUES (new.id, new.discord_username, new.minecraft_username, new.favorite_about_minecraft, new.understanding_of_smp, new.id);
+		END`,
+		`CREATE TRIGGER IF NOT EXISTS applications_fts_ad AFTER DELETE ON applications BEGIN
+			INSERT INTO applications_fts(applications_fts, rowid, discord_username, minecraft_username, favorite_about_minecraft, understanding_of_smp, id)
+			VALUES ('delete', old.id, old.discord_username, old.minecraft_username, old.favorite_about_minecraft, old.understanding_of_smp, old.id);
+		END`,
+		`CREATE TRIGGER IF NOT EXISTS applications_fts_au AFTER UPDATE ON applications BEGIN
+			INSERT INTO applications_fts(applications_fts, rowid, discord_username, minecraft_username, favorite_about_minecraft, understanding_of_smp, id)
+			VALUES ('delete', old.id, old.discord_username, old.minecraft_username, old.favorite_about_minecraft, old.understanding_of_smp, old.id);
+			INSERT INTO applications_fts(rowid, discord_username, minecraft_username, favorite_about_minecraft, understanding_of_smp, id)
+			VALUES (new.id, new.discord_username, new.minecraft_username, new.favorite_about_minecraft, new.understanding_of_smp, new.id);
+		END`,
+	}
+
+	// Remember whether the FTS table already existed so pre-existing rows are
+	// indexed exactly once (on the upgrade that introduces the index).
+	var ftsExists bool
+	if err := db.QueryRow(`SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'applications_fts')`).Scan(&ftsExists); err != nil {
+		return fmt.Errorf("error checking for search index: %w", err)
 	}
 
 	for _, query := range queries {
 		if _, err := db.Exec(query); err != nil {
 			return fmt.Errorf("error executing table creation: %w", err)
+		}
+	}
+
+	if !ftsExists {
+		if _, err := db.Exec(`INSERT INTO applications_fts(applications_fts) VALUES ('rebuild')`); err != nil {
+			return fmt.Errorf("error building search index: %w", err)
 		}
 	}
 
@@ -242,82 +282,74 @@ func (s *SQLiteStore) GetAllApplications() ([]*models.MinecraftApplication, erro
 	return applications, nil
 }
 
-// fuzzyMatch checks if characters in needle appear in order in haystack (case-insensitive)
-// This replicates the frontend fuzzy search algorithm
-func fuzzyMatch(haystack, needle string) bool {
-	if needle == "" {
-		return true
-	}
-
-	// Convert to lowercase for case-insensitive matching
-	h := strings.ToLower(haystack)
-	n := strings.ToLower(needle)
-
-	// Convert to runes to handle Unicode properly
-	hRunes := []rune(h)
-	nRunes := []rune(n)
-
-	hIndex := 0
-	for _, nChar := range nRunes {
-		found := false
-		for hIndex < len(hRunes) {
-			if hRunes[hIndex] == nChar {
-				found = true
-				hIndex++
-				break
-			}
-			hIndex++
-		}
-		if !found {
-			return false
-		}
-	}
-
-	return true
+// searchableColumns maps the API field names to the indexed application columns.
+var searchableColumns = map[string]string{
+	"discordUsername":        "discord_username",
+	"minecraftUsername":      "minecraft_username",
+	"favoriteAboutMinecraft": "favorite_about_minecraft",
+	"understandingOfSMP":     "understanding_of_smp",
+	"id":                     "id",
 }
 
-// matchesSearch checks if an application matches the search query in any of the specified fields
-func matchesSearch(app *models.MinecraftApplication, query string, fields []string) bool {
+// searchableColumnOrder is the default field set when no fields are supplied.
+var searchableColumnOrder = []string{
+	"discordUsername",
+	"minecraftUsername",
+	"favoriteAboutMinecraft",
+	"understandingOfSMP",
+	"id",
+}
+
+// applicationSelectColumns is the explicit projection used when scanning rows.
+const applicationSelectColumns = `a.id, a.discord_username, a.minecraft_username, a.age,
+	a.favorite_about_minecraft, a.understanding_of_smp, a.joined_discord,
+	a.submission_date, a.is_reviewed, a.reviewed_at, a.review_notes,
+	a.acceptance_status`
+
+// buildSearchFilter builds the SQL WHERE clause and arguments for a full-text
+// substring search over the selected fields. When the query contains LIKE
+// wildcards an ESCAPE clause is added (which makes the trigram index unusable,
+// as SQLite cannot optimize escaped patterns); ordinary queries stay indexable.
+func buildSearchFilter(query string, fields []string) (string, []any) {
 	if query == "" {
-		return true
+		return "", nil
 	}
 
-	// Create a set of fields to search
-	fieldSet := make(map[string]bool)
-	for _, field := range fields {
-		fieldSet[field] = true
+	selected := fields
+	if len(selected) == 0 {
+		selected = searchableColumnOrder
 	}
 
-	// If no fields specified, search all fields
-	if len(fields) == 0 {
-		fieldSet["discordUsername"] = true
-		fieldSet["minecraftUsername"] = true
-		fieldSet["favoriteAboutMinecraft"] = true
-		fieldSet["understandingOfSMP"] = true
-		fieldSet["id"] = true
+	needsEscape := strings.ContainsAny(query, `%_`)
+	pattern := "%" + query + "%"
+	if needsEscape {
+		escaped := strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`).Replace(query)
+		pattern = "%" + escaped + "%"
 	}
 
-	// Check each field
-	if fieldSet["discordUsername"] && fuzzyMatch(app.DiscordUsername, query) {
-		return true
-	}
-	if fieldSet["minecraftUsername"] && fuzzyMatch(app.MinecraftUsername, query) {
-		return true
-	}
-	if fieldSet["favoriteAboutMinecraft"] && fuzzyMatch(app.FavoriteAboutMinecraft, query) {
-		return true
-	}
-	if fieldSet["understandingOfSMP"] && fuzzyMatch(app.UnderstandingOfSMP, query) {
-		return true
-	}
-	if fieldSet["id"] && fuzzyMatch(strconv.Itoa(app.ID), query) {
-		return true
+	conditions := make([]string, 0, len(selected))
+	args := make([]any, 0, len(selected))
+	for _, field := range selected {
+		column, ok := searchableColumns[field]
+		if !ok {
+			continue
+		}
+		if needsEscape {
+			conditions = append(conditions, fmt.Sprintf("f.%s LIKE ? ESCAPE '\\'", column))
+		} else {
+			conditions = append(conditions, fmt.Sprintf("f.%s LIKE ?", column))
+		}
+		args = append(args, pattern)
 	}
 
-	return false
+	if len(conditions) == 0 {
+		return "", nil
+	}
+
+	return " WHERE (" + strings.Join(conditions, " OR ") + ")", args
 }
 
-// SearchApplications retrieves applications with fuzzy search and pagination
+// SearchApplications retrieves applications with indexed SQL search and pagination
 func (s *SQLiteStore) SearchApplications(query string, fields []string, page, pageSize int) ([]*models.MinecraftApplication, int, error) {
 	// Validate and set defaults
 	if page < 1 {
@@ -327,19 +359,36 @@ func (s *SQLiteStore) SearchApplications(query string, fields []string, page, pa
 		pageSize = 50
 	}
 
-	// Fetch all applications ordered by ID DESC
-	query_sql := `SELECT * FROM applications ORDER BY id DESC`
-	rows, err := s.db.Query(query_sql)
+	where, args := buildSearchFilter(query, fields)
+
+	from := ` FROM applications a`
+	if where != "" {
+		from += ` JOIN applications_fts f ON f.rowid = a.id` + where
+	}
+
+	var total int
+	if err := s.db.QueryRow(`SELECT COUNT(*)`+from, args...).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("error counting applications: %w", err)
+	}
+
+	offset := (page - 1) * pageSize
+	if offset >= total {
+		return []*models.MinecraftApplication{}, total, nil
+	}
+
+	dataQuery := `SELECT ` + applicationSelectColumns + from + ` ORDER BY a.id DESC LIMIT ? OFFSET ?`
+	dataArgs := append(append([]any{}, args...), pageSize, offset)
+
+	rows, err := s.db.Query(dataQuery, dataArgs...)
 	if err != nil {
 		return nil, 0, fmt.Errorf("error querying applications: %w", err)
 	}
 	defer rows.Close()
 
-	// Scan all applications
-	var allApplications []*models.MinecraftApplication
+	applications := make([]*models.MinecraftApplication, 0, pageSize)
 	for rows.Next() {
 		app := &models.MinecraftApplication{}
-		err := rows.Scan(
+		if err := rows.Scan(
 			&app.ID,
 			&app.DiscordUsername,
 			&app.MinecraftUsername,
@@ -352,41 +401,16 @@ func (s *SQLiteStore) SearchApplications(query string, fields []string, page, pa
 			&app.ReviewedAt,
 			&app.ReviewNotes,
 			&app.AcceptanceStatus,
-		)
-		if err != nil {
+		); err != nil {
 			return nil, 0, fmt.Errorf("error scanning application: %w", err)
 		}
-		allApplications = append(allApplications, app)
+		applications = append(applications, app)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, fmt.Errorf("error iterating applications: %w", err)
 	}
 
-	// Apply fuzzy search filter
-	var filteredApplications []*models.MinecraftApplication
-	for _, app := range allApplications {
-		if matchesSearch(app, query, fields) {
-			filteredApplications = append(filteredApplications, app)
-		}
-	}
-
-	// Calculate total count after filtering
-	total := len(filteredApplications)
-
-	// Apply pagination
-	offset := (page - 1) * pageSize
-	end := offset + pageSize
-
-	// Handle edge cases
-	if offset >= total {
-		// Page is beyond available results, return empty
-		return []*models.MinecraftApplication{}, total, nil
-	}
-	if end > total {
-		end = total
-	}
-
-	// Return paginated results
-	paginatedResults := filteredApplications[offset:end]
-
-	return paginatedResults, total, nil
+	return applications, total, nil
 }
 
 // UpdateApplication updates an existing application
