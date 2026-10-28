@@ -38,7 +38,7 @@ run: build run-backend
 .PHONY: build-backend
 build-backend:
 	@echo "Building backend binary..."
-	go build -o $(BACKEND_BINARY) $(BACKEND_ENTRY_POINT)
+	go build -tags sqlite_fts5 -o $(BACKEND_BINARY) $(BACKEND_ENTRY_POINT)
 	@echo "Backend binary created: $(BACKEND_BINARY)"
 
 # Build Vue frontend
@@ -105,7 +105,7 @@ fmt:
 .PHONY: test
 test:
 	@echo "Running Go tests..."
-	go test ./...
+	go test -tags sqlite_fts5 ./...
 
 # Download Go dependencies
 .PHONY: deps-backend
