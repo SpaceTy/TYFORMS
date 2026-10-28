@@ -4,37 +4,16 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>TYSMP Application Form</title>
-  <!-- Use Press Start 2P pixel font for authentic retro gaming feel -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap">
   <link rel="icon" type="image/webp" href="/favicon.webp">
-  <style>
-    /* Define Minecraft font with Press Start 2P as fallback */
-    @font-face {
-      font-family: 'Minecraft';
-      src: local('Press Start 2P'), url('https://fonts.gstatic.com/s/pressstart2p/v15/e3t4euO8T-267oIAQAu6jDQyK3nVivM.woff2') format('woff2');
-      font-weight: normal;
-      font-style: normal;
-      font-display: swap;
-    }
-    
-    body {
-      background-color: #1a1a1a;
-      /* Use a solid color fallback in case image fails to load */
-      background-image: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7));
-      background-size: cover;
-      background-attachment: fixed;
-      font-family: 'Press Start 2P', monospace;
-      color: #ffffff;
-    }
-    
-    /* Additional fallback styling to ensure the app is usable even without the custom styling */
-    #app {
-      min-height: 100vh;
-    }
-  </style>
+  <link rel="stylesheet" href="/css/styles.css">
+  <script type="module" src="/js/app.js"></script>
 </head>
 <body>
   <div id="app"></div>
-  <script type="module" src="/src/main.js"></script>
+  <div id="tooltip-root"></div>
+  <div id="overlay-root"></div>
 </body>
 </html>

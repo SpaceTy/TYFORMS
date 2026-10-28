@@ -13,18 +13,18 @@ help:
 	@echo "  build           - Build both backend and frontend"
 	@echo "  run             - Build both and run backend"
 	@echo "  build-backend   - Build Go backend binary"
-	@echo "  build-frontend  - Build Vue frontend to wwwroot/"
+	@echo "  build-frontend  - Copy vanilla frontend to wwwroot/"
 	@echo "  run-backend     - Run backend server (with air hot reload if available)"
 	@echo "  run-backend-prod - Run backend server directly (production)"
 	@echo "  dev-backend     - Run backend with air (requires air installation)"
-	@echo "  dev-frontend    - Start frontend development server"
+	@echo "  dev-frontend    - Start frontend dev server on :5173 (proxies /api to :5099)"
 	@echo "  clean           - Remove built binaries and frontend build artifacts"
 	@echo "  clean-backend   - Remove backend binary"
 	@echo "  clean-frontend  - Remove frontend build directory (wwwroot/)"
 	@echo "  fmt             - Format Go code"
 	@echo "  test            - Run Go tests"
 	@echo "  deps-backend    - Download Go dependencies"
-	@echo "  deps-frontend   - Install frontend dependencies"
+	@echo "  deps-frontend   - No frontend dependencies (nothing to install)"
 
 # Build both backend and frontend
 .PHONY: build
@@ -41,12 +41,14 @@ build-backend:
 	go build -o $(BACKEND_BINARY) $(BACKEND_ENTRY_POINT)
 	@echo "Backend binary created: $(BACKEND_BINARY)"
 
-# Build Vue frontend
+# Copy vanilla frontend to the served directory
 .PHONY: build-frontend
 build-frontend:
-	@echo "Building frontend..."
-	cd $(FRONTEND_DIR) && npm run build
-	@echo "Frontend built to $(WWWROOT_DIR)/"
+	@echo "Copying frontend..."
+	@rm -rf $(WWWROOT_DIR)
+	@mkdir -p $(WWWROOT_DIR)
+	@cp -r $(FRONTEND_DIR)/index.html $(FRONTEND_DIR)/css $(FRONTEND_DIR)/js $(FRONTEND_DIR)/favicon.webp $(WWWROOT_DIR)/
+	@echo "Frontend copied to $(WWWROOT_DIR)/"
 
 # Run backend with air (hot reload) if available, otherwise run directly
 .PHONY: run-backend
@@ -71,11 +73,11 @@ dev-backend:
 	@echo "Starting backend with air (hot reload)..."
 	air
 
-# Start frontend development server
+# Start frontend development server (run the backend alongside it)
 .PHONY: dev-frontend
 dev-frontend:
-	@echo "Starting frontend development server..."
-	cd $(FRONTEND_DIR) && npm run dev
+	@echo "Starting frontend dev server on :5173 (proxying /api to :5099)..."
+	go run ./cmd/devserver
 
 # Clean everything
 .PHONY: clean
@@ -114,11 +116,10 @@ deps-backend:
 	go mod download
 	go mod tidy
 
-# Install frontend dependencies
+# Frontend has no dependencies
 .PHONY: deps-frontend
 deps-frontend:
-	@echo "Installing frontend dependencies..."
-	cd $(FRONTEND_DIR) && npm install
+	@echo "Frontend has no dependencies."
 
 # Wordle service targets (optional)
 .PHONY: build-wordle
